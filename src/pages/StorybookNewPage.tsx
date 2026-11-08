@@ -317,7 +317,7 @@ export default function StorybookNewPage() {
             <div className="border-b border-hairline px-5 py-4"><p className="service-eyebrow">만들어질 그림책</p><p className="mt-1 text-sm text-brown/60">선택한 내용을 여기서 확인하세요</p></div>
             <div className="relative flex justify-center bg-sand-light px-6 pb-6 pt-8">
               <div className="relative aspect-[2/3] w-32 overflow-hidden rounded-l-[4px] rounded-r-[10px] bg-paper shadow-lift">
-                <img src={art.full} alt="" className="absolute inset-x-0 bottom-0 mx-auto h-[78%] w-auto mix-blend-multiply soft-edges" />
+                <img src={child.characterImageUrl ?? art.full} alt="" className="absolute inset-x-0 bottom-0 mx-auto h-[78%] w-auto mix-blend-multiply soft-edges" />
                 <span className="absolute inset-x-3 top-4 text-center font-book text-[13px] font-bold leading-snug text-brown">
                   {n.와} {lessonTag ? LESSON_HINT[lessonTag] : "특별한 하루"}
                 </span>

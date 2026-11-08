@@ -1,6 +1,6 @@
 // 목업 API가 쓰는 localStorage 저장소. 새로고침해도 데이터가 유지된다.
 import { ApiError } from "../client";
-import type { ChildGender, ChildProfile, DiaryDecoration, Weather } from "../../types";
+import type { ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, Weather } from "../../types";
 
 const DB_KEY = "harudonghwa.mock.db.v2";
 
@@ -8,6 +8,7 @@ export interface MockUser {
   id: string;
   email: string;
   password: string;
+  createdAt?: string;
 }
 
 export interface MockChild {
@@ -17,6 +18,7 @@ export interface MockChild {
   birthDate: string | null;
   gender: ChildGender | null;
   profile?: ChildProfile | null;
+  appearance?: ChildAppearance | null;
 }
 
 export interface MockDiary {

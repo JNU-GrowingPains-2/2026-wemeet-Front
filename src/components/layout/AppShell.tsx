@@ -53,7 +53,7 @@ export default function AppShell() {
               aria-label={`${child.name} 프로필과 설정`}
               className="flex min-h-11 items-center gap-2 rounded-full py-1 pl-1 pr-1 transition-colors hover:bg-sand-light md:pr-3"
             >
-              <CharacterAvatar gender={child.gender} className="h-9 w-9" />
+              <CharacterAvatar gender={child.gender} imageUrl={child.characterImageUrl} className="h-9 w-9" />
               <span className="hidden text-sm font-medium text-brown/80 md:inline">{child.name}</span>
             </NavLink>
           </div>

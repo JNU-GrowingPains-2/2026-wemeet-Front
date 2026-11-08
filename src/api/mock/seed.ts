@@ -34,7 +34,8 @@ export function ensureDemoAccount() {
 
   const userId = newId("user");
   const childId = newId("child");
-  db.users.push({ id: userId, ...DEMO_ACCOUNT });
+  // 한 달 넘게 기록을 모아 온 가족처럼 보이도록 가입일을 앞당긴다.
+  db.users.push({ id: userId, ...DEMO_ACCOUNT, createdAt: new Date(Date.now() - 40 * 86_400_000).toISOString() });
   db.children.push({
     id: childId,
     userId,

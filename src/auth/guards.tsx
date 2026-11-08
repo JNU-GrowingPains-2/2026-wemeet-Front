@@ -36,9 +36,13 @@ export function RequireChild() {
 }
 
 // 아이 프로필이 없을 때만 들어올 수 있다 (온보딩).
+// 온보딩을 마치면 아이가 생기므로, 첫 캐릭터를 그리는 중이면 캐릭터 화면으로 보낸다.
 export function RequireNoChild() {
   const { child } = useAuth();
-  if (child) return <Navigate to="/" replace />;
+  if (child) {
+    const drawing = child.characterStatus === "queued" || child.characterStatus === "processing";
+    return <Navigate to={drawing ? "/character" : "/"} replace />;
+  }
   return <Outlet />;
 }
 

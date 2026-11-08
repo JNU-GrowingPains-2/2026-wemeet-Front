@@ -13,6 +13,7 @@ import SignupPage from "./pages/SignupPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import SettingsPage from "./pages/SettingsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import CharacterPage from "./pages/CharacterPage";
 import AppShell from "./components/layout/AppShell";
 
 function RootLayout() {
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
           {
             element: <RequireChild />,
             children: [
+              { path: "/character", element: <CharacterPage /> },
               {
                 element: <AppShell />,
                 children: [

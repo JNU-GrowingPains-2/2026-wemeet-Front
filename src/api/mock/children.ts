@@ -1,15 +1,30 @@
 import type { ChildrenApi } from "../children";
-import type { Child, ChildProfile } from "../../types";
+import type { Child, ChildAppearance, ChildProfile } from "../../types";
+import { characterArt } from "../../assets/art";
 import { loadDb, newId, saveDb, type MockChild } from "./db";
 import { fail, requireChild, requireUser, simulateNetwork } from "./util";
 
-export const toChild = ({ id, name, birthDate, gender, profile }: MockChild): Child => ({
+// 목업에서는 캐릭터를 새로 그리지 않고, 고른 성별의 기본 캐릭터를 완성된 캐릭터로 보여 준다.
+export const toChild = ({ id, name, birthDate, gender, profile, appearance }: MockChild): Child => ({
   id,
   name,
   birthDate,
   gender: gender ?? null,
   profile: profile ?? null,
+  appearance: appearance ?? null,
+  characterStatus: gender ? "ready" : "none",
+  characterImageUrl: gender ? characterArt[gender].full : null,
 });
+
+function cleanAppearance(appearance: ChildAppearance | null | undefined): ChildAppearance | null {
+  if (!appearance) return null;
+  const cleaned: ChildAppearance = {
+    hair: appearance.hair?.trim() || null,
+    features: [...new Set((appearance.features ?? []).map((v) => v.trim()).filter(Boolean))],
+    note: appearance.note?.trim() || null,
+  };
+  return cleaned.hair || cleaned.features.length || cleaned.note ? cleaned : null;
+}
 
 // 서버와 같이 공백·중복을 정리하고, 아무것도 없으면 null 로 둔다.
 function cleanProfile(profile: ChildProfile | null | undefined): ChildProfile | null {
@@ -50,6 +65,7 @@ export const mockChildrenApi: ChildrenApi = {
       birthDate: input.birthDate || null,
       gender: input.gender ?? null,
       profile: cleanProfile(input.profile),
+      appearance: cleanAppearance(input.appearance),
     };
     db.children.push(child);
     saveDb(db);
@@ -64,7 +80,16 @@ export const mockChildrenApi: ChildrenApi = {
     if (input.birthDate !== undefined) child.birthDate = input.birthDate || null;
     if (input.gender !== undefined) child.gender = input.gender ?? null;
     if (input.profile !== undefined) child.profile = cleanProfile(input.profile);
+    if (input.appearance !== undefined) child.appearance = cleanAppearance(input.appearance);
     saveDb(db);
+    return toChild(child);
+  },
+
+  async createCharacter(childId) {
+    await simulateNetwork();
+    const db = loadDb();
+    const child = requireChild(childId, db);
+    if (!child.gender) fail(400, "GENDER_REQUIRED", "주인공 모습(여자아이·남자아이)을 먼저 골라 주세요.");
     return toChild(child);
   },
 };

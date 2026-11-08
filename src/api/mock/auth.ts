@@ -1,7 +1,7 @@
 import type { AuthApi } from "../auth";
 import type { Credentials } from "../types";
 import type { Child, User } from "../../types";
-import { loadDb, newId, saveDb } from "./db";
+import { loadDb, newId, nowIso, saveDb } from "./db";
 import { clone, fail, requireUser, simulateNetwork, tokenForUser } from "./util";
 import { ensureDemoAccount } from "./seed";
 import { toChild } from "./children";
@@ -13,7 +13,11 @@ function validate({ email, password }: Credentials) {
   if (password.length < 8) fail(400, "WEAK_PASSWORD", "비밀번호는 8자 이상이어야 해요.");
 }
 
-const publicUser = (u: { id: string; email: string }): User => ({ id: u.id, email: u.email });
+const publicUser = (u: { id: string; email: string; createdAt?: string }): User => ({
+  id: u.id,
+  email: u.email,
+  createdAt: u.createdAt ?? null,
+});
 
 export const mockAuthApi: AuthApi = {
   async signup(input) {
@@ -25,7 +29,7 @@ export const mockAuthApi: AuthApi = {
     if (db.users.some((u) => u.email === email)) {
       fail(409, "EMAIL_TAKEN", "이미 가입된 이메일이에요.");
     }
-    const user = { id: newId("user"), email, password: input.password };
+    const user = { id: newId("user"), email, password: input.password, createdAt: nowIso() };
     db.users.push(user);
     saveDb(db);
     return { accessToken: tokenForUser(user.id), user: publicUser(user) };

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
-import { CloudCheck, Info, Lock, LogOut, ShieldCheck } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { CloudCheck, Info, Lock, LogOut, Paintbrush, ShieldCheck } from "lucide-react";
 import { USE_MOCK, errorMessage } from "../api";
 import { useAuth, useCurrentChild } from "../auth/authContext";
 import PageHeader from "../components/layout/PageHeader";
@@ -8,11 +8,20 @@ import Button from "../components/common/Button";
 import CharacterAvatar from "../components/common/CharacterAvatar";
 import CharacterPicker from "../components/common/CharacterPicker";
 import TextField from "../components/common/TextField";
+import AppearanceFields from "../components/Onboarding/AppearanceFields";
 import ChildProfileFields from "../components/Onboarding/ChildProfileFields";
-import { isProfileEmpty, sameProfile, toProfileForm } from "../utils/childProfile";
+import {
+  isAppearanceEmpty,
+  isProfileEmpty,
+  sameAppearance,
+  sameProfile,
+  toAppearanceForm,
+  toProfileForm,
+} from "../utils/childProfile";
 import { useToast } from "../components/common/toastContext";
-import { useUpdateChild } from "../hooks/useAccount";
-import type { ChildGender, ChildProfile } from "../types";
+import { useCreateCharacter, useUpdateChild } from "../hooks/useAccount";
+import { characterArt } from "../assets/art";
+import type { ChildAppearance, ChildGender, ChildProfile } from "../types";
 import { todayString } from "../utils/date";
 
 export default function SettingsPage() {
@@ -26,6 +35,28 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<ChildProfile>(toProfileForm(child.profile));
   const updateProfile = useUpdateChild(child.id);
   const profileDirty = !sameProfile(profile, child.profile);
+
+  const navigate = useNavigate();
+  const [appearance, setAppearance] = useState<ChildAppearance>(toAppearanceForm(child.appearance));
+  const updateAppearance = useUpdateChild(child.id);
+  const createCharacter = useCreateCharacter(child.id);
+  const appearanceDirty = !sameAppearance(appearance, child.appearance);
+  const drawing = child.characterStatus === "queued" || child.characterStatus === "processing";
+  const redrawPending = updateAppearance.isPending || createCharacter.isPending;
+
+  // 바뀐 생김새를 저장한 뒤 그 모습으로 새로 그리고, 캐릭터 화면에서 결과를 보여 준다.
+  const redraw = async () => {
+    if (redrawPending) return;
+    try {
+      if (appearanceDirty) {
+        await updateAppearance.mutateAsync({ appearance: isAppearanceEmpty(appearance) ? null : appearance });
+      }
+      await createCharacter.mutateAsync();
+      navigate("/character");
+    } catch {
+      // 오류는 아래에 표시한다.
+    }
+  };
 
   const saveProfile = () => {
     if (!profileDirty || updateProfile.isPending) return;
@@ -54,7 +85,7 @@ export default function SettingsPage() {
 
       <section className="rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
         <div className="flex items-center gap-4">
-          <CharacterAvatar gender={child.gender} className="h-16 w-16" />
+          <CharacterAvatar gender={child.gender} imageUrl={child.characterImageUrl} className="h-16 w-16" />
           <div>
             <h2 className="text-lg font-bold text-brown">{child.name}</h2>
             <p className="text-sm text-brown/55">동화 속 주인공 프로필</p>
@@ -71,9 +102,10 @@ export default function SettingsPage() {
           />
           <CharacterPicker value={gender} onChange={setGender} />
           <TextField
-            label="생일 (선택)"
+            label="생일"
             type="date"
             max={todayString()}
+            hint="나이에 맞는 모습으로 그리려면 캐릭터를 새로 그려 주세요."
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
           />
@@ -87,6 +119,50 @@ export default function SettingsPage() {
           </Button>
           <p className="-mt-2 text-xs text-brown/45">이미 완성된 동화는 그대로 두고, 새로 만드는 동화부터 반영돼요.</p>
         </form>
+      </section>
+
+      <section className="mt-5 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
+        <h2 className="text-lg font-bold text-brown">주인공 캐릭터</h2>
+        <p className="mt-1 text-sm text-brown/55">생김새를 고치고 새로 그리면 앞으로 만드는 동화에 반영돼요.</p>
+        <div className="mt-5 flex items-center gap-4">
+          <img
+            src={child.characterImageUrl ?? characterArt[child.gender ?? "girl"].full}
+            alt={`${child.name} 캐릭터`}
+            className="h-36 w-24 rounded-xl bg-paper object-contain ring-1 ring-hairline"
+          />
+          <p className="text-sm text-brown/60">
+            {drawing
+              ? "지금 새 캐릭터를 그리고 있어요."
+              : child.characterStatus === "failed"
+                ? "마지막으로 그리기에 실패했어요. 다시 그려 주세요."
+                : child.characterImageUrl
+                  ? "동화 속 주인공은 이 모습으로 등장해요."
+                  : "아직 아이만의 캐릭터가 없어서 기본 캐릭터로 그려요."}
+          </p>
+        </div>
+        <div className="mt-6">
+          <AppearanceFields value={appearance} onChange={setAppearance} />
+        </div>
+        {(updateAppearance.isError || createCharacter.isError) && (
+          <p role="alert" className="mt-4 text-sm text-error">
+            {errorMessage(updateAppearance.error ?? createCharacter.error)}
+          </p>
+        )}
+        <Button
+          size="lg"
+          className="mt-6 w-full"
+          loading={redrawPending}
+          disabled={drawing || !child.gender}
+          onClick={() => void redraw()}
+        >
+          <Paintbrush size={17} aria-hidden />
+          {drawing ? "그리는 중이에요" : "이 모습으로 새로 그리기"}
+        </Button>
+        {drawing && (
+          <Link to="/character" className="mt-2 block text-center text-sm font-semibold text-ocean-deep underline underline-offset-2">
+            그리는 모습 보러 가기
+          </Link>
+        )}
       </section>
 
       <section className="mt-5 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">

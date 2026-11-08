@@ -3,6 +3,8 @@ export type Weather = "sunny" | "cloudy" | "rainy" | "snowy";
 export interface User {
   id: string;
   email: string;
+  // 가입 시각(ISO). 홈의 "함께한 지 N일"은 이 날부터 센다.
+  createdAt?: string | null;
 }
 
 // 동화 속 주인공 캐릭터. girl = 서아 캐릭터, boy = 도윤 캐릭터
@@ -17,12 +19,26 @@ export interface ChildProfile {
   note: string | null;
 }
 
+// 주인공 캐릭터를 그릴 외모 특징
+export interface ChildAppearance {
+  hair: string | null;
+  features: string[];
+  note: string | null;
+}
+
+// none: 아직 없음, queued·processing: 그리는 중, ready: 완성, failed: 마지막 시도 실패
+export type CharacterStatus = "none" | "queued" | "processing" | "ready" | "failed";
+
 export interface Child {
   id: string;
   name: string;
   birthDate: string | null; // YYYY-MM-DD
   gender: ChildGender | null;
   profile: ChildProfile | null;
+  appearance: ChildAppearance | null;
+  characterStatus: CharacterStatus;
+  // 지금 쓰는 주인공 캐릭터 그림. 없으면 성별 기본 캐릭터를 쓴다.
+  characterImageUrl: string | null;
 }
 
 export interface DiaryPhoto {

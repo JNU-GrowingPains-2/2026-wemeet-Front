@@ -1,4 +1,4 @@
-import type { ChildProfile } from "../types";
+import type { ChildAppearance, ChildProfile } from "../types";
 
 export const EMPTY_PROFILE: ChildProfile = {
   personality: [],
@@ -25,6 +25,24 @@ export function isProfileEmpty(profile: ChildProfile): boolean {
 export function sameProfile(a: ChildProfile | null, b: ChildProfile | null): boolean {
   const normalize = (p: ChildProfile | null) => {
     const form = toProfileForm(p);
+    return JSON.stringify({ ...form, note: form.note?.trim() || null });
+  };
+  return normalize(a) === normalize(b);
+}
+
+export const EMPTY_APPEARANCE: ChildAppearance = { hair: null, features: [], note: null };
+
+export function toAppearanceForm(appearance: ChildAppearance | null): ChildAppearance {
+  return appearance ? { ...EMPTY_APPEARANCE, ...appearance } : EMPTY_APPEARANCE;
+}
+
+export function isAppearanceEmpty(appearance: ChildAppearance): boolean {
+  return !appearance.hair && !appearance.features.length && !appearance.note?.trim();
+}
+
+export function sameAppearance(a: ChildAppearance | null, b: ChildAppearance | null): boolean {
+  const normalize = (value: ChildAppearance | null) => {
+    const form = toAppearanceForm(value);
     return JSON.stringify({ ...form, note: form.note?.trim() || null });
   };
   return normalize(a) === normalize(b);

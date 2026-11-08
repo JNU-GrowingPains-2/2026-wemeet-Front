@@ -28,6 +28,17 @@ export function useCreateChild() {
   });
 }
 
+export function useCreateCharacter(childId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.createCharacter(childId),
+    onSuccess: (child) =>
+      queryClient.setQueryData<MeResult>(queryKeys.me, (me) =>
+        me ? { ...me, children: me.children.map((c) => (c.id === child.id ? child : c)) } : me,
+      ),
+  });
+}
+
 export function useUpdateChild(childId: string) {
   const queryClient = useQueryClient();
   return useMutation({

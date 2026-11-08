@@ -18,12 +18,12 @@ import TimelineView from "../components/Calendar/TimelineView";
 import { MoodFace } from "../components/Diary/stickers";
 import ErrorBox from "../components/common/ErrorBox";
 import Skeleton from "../components/common/Skeleton";
-import { useCurrentChild } from "../auth/authContext";
+import { useAuth, useCurrentChild } from "../auth/authContext";
 import { useDiaries } from "../hooks/useDiaries";
 import { useStorybooks } from "../hooks/useStorybooks";
 import { errorMessage } from "../api";
 import { brandArt } from "../assets/art";
-import { MONTH_LABEL_FORMAT, addDays, buildMonthGrid, daysBetweenInclusive, todayString } from "../utils/date";
+import { MONTH_LABEL_FORMAT, addDays, buildMonthGrid, daysBetweenInclusive, formatDate, todayString } from "../utils/date";
 import { computeStreak, countThisMonth, toEntriesByDate } from "../utils/stats";
 import { nameForms, possessive } from "../utils/korean";
 import type { DiaryEntry } from "../types";
@@ -45,6 +45,7 @@ type ViewMode = "calendar" | "timeline";
 export default function AppHome() {
   const navigate = useNavigate();
   const child = useCurrentChild();
+  const { user } = useAuth();
   const today = new Date();
   const todayStr = todayString();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -77,7 +78,9 @@ export default function AppHome() {
     e.date.startsWith(`${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`),
   );
   const latestEntry = [...(recentQuery.data ?? [])].sort((a, b) => b.date.localeCompare(a.date))[0];
-  const dayCount = child.birthDate ? daysBetweenInclusive(child.birthDate, todayStr) : null;
+  // 가입한 날부터 오늘까지 하루동화와 함께한 날 수
+  const joinedDate = user?.createdAt ? formatDate(new Date(user.createdAt)) : null;
+  const dayCount = joinedDate ? daysBetweenInclusive(joinedDate, todayStr) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 sm:px-6 sm:pt-10">

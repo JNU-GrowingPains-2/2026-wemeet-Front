@@ -1,5 +1,5 @@
 // API 함수의 입력 타입 (camelCase). 실제 구현과 목업 구현이 함께 쓴다.
-import type { Child, ChildGender, ChildProfile, DiaryDecoration, User, Weather } from "../types";
+import type { Child, ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, User, Weather } from "../types";
 
 export interface Credentials {
   email: string;
@@ -26,6 +26,7 @@ export interface ChildInput {
   birthDate?: string | null;
   gender?: ChildGender | null;
   profile?: ChildProfile | null;
+  appearance?: ChildAppearance | null;
 }
 
 export interface SaveDiaryInput {
