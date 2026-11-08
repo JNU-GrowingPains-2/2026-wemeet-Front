@@ -35,7 +35,20 @@ export function ensureDemoAccount() {
   const userId = newId("user");
   const childId = newId("child");
   db.users.push({ id: userId, ...DEMO_ACCOUNT });
-  db.children.push({ id: childId, userId, name: DEMO_CHILD_NAME, birthDate: "2021-05-20", gender: "girl" });
+  db.children.push({
+    id: childId,
+    userId,
+    name: DEMO_CHILD_NAME,
+    birthDate: "2021-05-20",
+    gender: "girl",
+    profile: {
+      personality: ["호기심 많은", "다정한"],
+      likes: ["그림 그리기", "동물", "바깥놀이"],
+      family: ["엄마", "아빠", "할머니"],
+      daycare: "어린이집",
+      note: "요즘 친구에게 먼저 말을 거는 연습을 하고 있어요.",
+    },
+  });
 
   const today = todayString();
   for (const seed of seedEntries) {

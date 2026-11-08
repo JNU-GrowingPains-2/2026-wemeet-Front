@@ -8,9 +8,11 @@ import Button from "../components/common/Button";
 import CharacterAvatar from "../components/common/CharacterAvatar";
 import CharacterPicker from "../components/common/CharacterPicker";
 import TextField from "../components/common/TextField";
+import ChildProfileFields from "../components/Onboarding/ChildProfileFields";
+import { isProfileEmpty, sameProfile, toProfileForm } from "../utils/childProfile";
 import { useToast } from "../components/common/toastContext";
 import { useUpdateChild } from "../hooks/useAccount";
-import type { ChildGender } from "../types";
+import type { ChildGender, ChildProfile } from "../types";
 import { todayString } from "../utils/date";
 
 export default function SettingsPage() {
@@ -21,6 +23,17 @@ export default function SettingsPage() {
   const [name, setName] = useState(child.name);
   const [birthDate, setBirthDate] = useState(child.birthDate ?? "");
   const [gender, setGender] = useState<ChildGender | null>(child.gender);
+  const [profile, setProfile] = useState<ChildProfile>(toProfileForm(child.profile));
+  const updateProfile = useUpdateChild(child.id);
+  const profileDirty = !sameProfile(profile, child.profile);
+
+  const saveProfile = () => {
+    if (!profileDirty || updateProfile.isPending) return;
+    updateProfile.mutate(
+      { profile: isProfileEmpty(profile) ? null : profile },
+      { onSuccess: () => toast.show("아이 소개를 저장했어요.") },
+    );
+  };
 
   const trimmed = name.trim();
   const nameError = trimmed.length === 0 ? "아이 이름을 알려 주세요." : undefined;
@@ -77,6 +90,28 @@ export default function SettingsPage() {
       </section>
 
       <section className="mt-5 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
+        <h2 className="text-lg font-bold text-brown">어떤 아이인가요</h2>
+        <p className="mt-1 text-sm text-brown/55">고른 만큼만 새로 만드는 동화에 작은 디테일로 녹여 드려요.</p>
+        <div className="mt-6">
+          <ChildProfileFields childName={child.name} value={profile} onChange={setProfile} />
+        </div>
+        {updateProfile.isError && profileDirty && (
+          <p role="alert" className="mt-4 text-sm text-error">
+            {errorMessage(updateProfile.error)}
+          </p>
+        )}
+        <Button
+          size="lg"
+          className="mt-6 w-full"
+          loading={updateProfile.isPending}
+          disabled={!profileDirty}
+          onClick={saveProfile}
+        >
+          아이 소개 저장
+        </Button>
+      </section>
+
+      <section className="mt-5 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
         <h2 className="text-lg font-bold text-brown">기록 보관과 개인정보</h2>
         <ul className="mt-4 space-y-4 text-sm leading-relaxed">
           <li className="flex gap-3">
@@ -104,6 +139,17 @@ export default function SettingsPage() {
               <p className="text-brown/55">동화 삽화는 그림책 캐릭터로 그려요. 사진은 기록을 보여줄 때만 쓰여요.</p>
             </div>
           </li>
+          {!USE_MOCK && (
+            <li className="flex gap-3">
+              <Info size={20} className="shrink-0 text-brown/60" aria-hidden />
+              <div>
+                <p className="font-semibold text-brown">동화는 AI로 만들어요</p>
+                <p className="text-brown/55">
+                  아이 이름, 아이 소개, 고른 기간의 기록 글을 AI가 읽고 글과 삽화를 지어요. 이 정보는 미국의 AI 서비스로 전송돼요.
+                </p>
+              </div>
+            </li>
+          )}
         </ul>
       </section>
 
@@ -117,6 +163,13 @@ export default function SettingsPage() {
           >
             <Info size={17} aria-hidden />
             서비스 소개 보기
+          </Link>
+          <Link
+            to="/privacy"
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-lg bg-white text-[15px] font-semibold text-brown ring-1 ring-hairline hover:bg-sand-light"
+          >
+            <ShieldCheck size={17} aria-hidden />
+            개인정보 처리방침
           </Link>
           <Button variant="danger" className="flex-1" onClick={signOut}>
             <LogOut size={17} aria-hidden />

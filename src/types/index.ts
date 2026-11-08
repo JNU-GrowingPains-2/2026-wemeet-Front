@@ -8,11 +8,21 @@ export interface User {
 // 동화 속 주인공 캐릭터. girl = 서아 캐릭터, boy = 도윤 캐릭터
 export type ChildGender = "girl" | "boy";
 
+// 온보딩에서 받는 아이 소개. 모두 선택 항목이고, 동화 글의 작은 디테일로 쓰인다.
+export interface ChildProfile {
+  personality: string[];
+  likes: string[];
+  family: string[];
+  daycare: string | null;
+  note: string | null;
+}
+
 export interface Child {
   id: string;
   name: string;
   birthDate: string | null; // YYYY-MM-DD
   gender: ChildGender | null;
+  profile: ChildProfile | null;
 }
 
 export interface DiaryPhoto {

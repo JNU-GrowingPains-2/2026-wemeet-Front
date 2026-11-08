@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { errorMessage } from "../api";
 import AuthLayout from "../components/Auth/AuthLayout";
-import CredentialsForm from "../components/Auth/CredentialsForm";
+import SignupForm from "../components/Auth/SignupForm";
 import { useSignup } from "../hooks/useAccount";
 import { brandArt } from "../assets/art";
 
@@ -11,19 +11,19 @@ export default function SignupPage() {
   return (
     <AuthLayout
       title="하루동화를 시작해요"
-      description="아이의 하루를 차곡차곡 모아, 아이가 주인공인 그림동화로 만들어 드려요."
+      description="가입하고 나면 아이에 대해 몇 가지만 여쭤볼게요. 아이가 주인공인 그림동화를 만드는 데 쓰여요."
       illustration={brandArt.hero}
     >
-      <CredentialsForm
-        submitLabel="무료로 시작하기"
-        isNewPassword
+      <ol className="mb-6 flex items-center gap-2 text-xs font-semibold text-brown/45" aria-label="가입 단계">
+        <li className="rounded-full bg-brown px-3 py-1 text-white" aria-current="step">1 계정 만들기</li>
+        <li aria-hidden>→</li>
+        <li className="rounded-full bg-white px-3 py-1 ring-1 ring-hairline">2 아이 소개</li>
+      </ol>
+      <SignupForm
         pending={signup.isPending}
         serverError={signup.isError ? errorMessage(signup.error) : null}
         onSubmit={(input) => signup.mutate(input)}
       />
-      <p className="mt-4 text-center text-xs leading-relaxed text-brown/45">
-        가입하면 서비스 이용약관과 개인정보 처리방침에 동의하게 돼요.
-      </p>
       <p className="mt-6 text-center text-sm text-brown/60">
         이미 계정이 있나요?{" "}
         <Link to="/login" className="font-semibold text-ocean-deep underline-offset-2 hover:underline">

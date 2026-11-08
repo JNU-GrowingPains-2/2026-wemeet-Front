@@ -1,9 +1,14 @@
 // API 함수의 입력 타입 (camelCase). 실제 구현과 목업 구현이 함께 쓴다.
-import type { Child, ChildGender, DiaryDecoration, User, Weather } from "../types";
+import type { Child, ChildGender, ChildProfile, DiaryDecoration, User, Weather } from "../types";
 
 export interface Credentials {
   email: string;
   password: string;
+}
+
+export interface SignupInput extends Credentials {
+  // 개인정보 수집·이용과 국외 이전(AI 동화 생성) 필수 동의를 모두 했는지
+  agreeToTerms: boolean;
 }
 
 export interface AuthResult {
@@ -20,6 +25,7 @@ export interface ChildInput {
   name: string;
   birthDate?: string | null;
   gender?: ChildGender | null;
+  profile?: ChildProfile | null;
 }
 
 export interface SaveDiaryInput {

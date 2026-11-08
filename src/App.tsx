@@ -12,6 +12,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import SettingsPage from "./pages/SettingsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import AppShell from "./components/layout/AppShell";
 
 function RootLayout() {
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: "/intro", element: <IntroPage /> },
+      { path: "/privacy", element: <PrivacyPage /> },
       {
         element: <GuestOnly />,
         children: [

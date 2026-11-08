@@ -1,8 +1,8 @@
 import { request } from "./client";
-import type { AuthResult, Credentials, MeResult } from "./types";
+import type { AuthResult, Credentials, MeResult, SignupInput } from "./types";
 
 export const authApi = {
-  signup: (input: Credentials) =>
+  signup: (input: SignupInput) =>
     request<AuthResult>("POST", "/auth/signup", { body: input, auth: false }),
   login: (input: Credentials) =>
     request<AuthResult>("POST", "/auth/login", { body: input, auth: false }),

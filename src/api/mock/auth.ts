@@ -4,6 +4,7 @@ import type { Child, User } from "../../types";
 import { loadDb, newId, saveDb } from "./db";
 import { clone, fail, requireUser, simulateNetwork, tokenForUser } from "./util";
 import { ensureDemoAccount } from "./seed";
+import { toChild } from "./children";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,6 +19,7 @@ export const mockAuthApi: AuthApi = {
   async signup(input) {
     await simulateNetwork();
     validate(input);
+    if (!input.agreeToTerms) fail(400, "TERMS_NOT_AGREED", "필수 항목에 모두 동의해 주세요.");
     const db = loadDb();
     const email = input.email.trim().toLowerCase();
     if (db.users.some((u) => u.email === email)) {
@@ -45,7 +47,7 @@ export const mockAuthApi: AuthApi = {
     const user = requireUser(db);
     const children: Child[] = db.children
       .filter((c) => c.userId === user.id)
-      .map(({ id, name, birthDate, gender }) => ({ id, name, birthDate, gender: gender ?? null }));
+      .map(toChild);
     return clone({ user: publicUser(user), children });
   },
 };
