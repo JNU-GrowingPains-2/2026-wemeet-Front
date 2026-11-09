@@ -14,6 +14,11 @@ export default function SignupPage() {
       description="가입하고 나면 아이에 대해 몇 가지만 여쭤볼게요. 아이가 주인공인 그림동화를 만드는 데 쓰여요."
       illustration={brandArt.hero}
     >
+      {import.meta.env.VITE_SIGNUP_CLOSED === "true" && (
+        <p role="status" className="mb-6 rounded-xl bg-sand-light px-4 py-3 text-sm leading-relaxed text-brown">
+          지금은 서비스 준비 중이라 미리 안내받은 분만 가입할 수 있어요. 정식으로 열리면 이 화면에서 바로 가입할 수 있어요.
+        </p>
+      )}
       <ol className="mb-6 flex items-center gap-2 text-xs font-semibold text-brown/45" aria-label="가입 단계">
         <li className="rounded-full bg-brown px-3 py-1 text-white" aria-current="step">1 계정 만들기</li>
         <li aria-hidden>→</li>
