@@ -25,7 +25,8 @@ export default function CharacterAvatar({ gender, imageUrl, className = "h-10 w-
         alt=""
         className={
           imageUrl
-            ? "h-full w-full scale-[2.2] object-cover object-[50%_14%]"
+            ? // 전신 캐릭터(2:3)에서 얼굴이 있는 위쪽 1/4 지점을 확대해 보여 준다.
+              "h-full w-full origin-[50%_30%] scale-[2.2] object-cover object-top"
             : "h-full w-full scale-[1.35] object-cover object-[50%_22%]"
         }
         draggable={false}

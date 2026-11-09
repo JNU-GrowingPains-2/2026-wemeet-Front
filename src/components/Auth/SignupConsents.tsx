@@ -17,7 +17,7 @@ const ITEMS: { key: keyof ConsentState; title: string; detail: string; anchor: s
     key: "overseas",
     title: "개인정보 국외 이전 동의 (AI 동화 생성)",
     detail:
-      "동화는 AI로 만들어요. 동화를 만들 때 아이 이름, 아이 소개, 고른 기간의 기록 글이 미국의 AI 서비스(OpenAI 등)로 전송돼요. 아이 사진은 보내지 않아요.",
+      "동화는 AI로 만들어요. 동화를 만들 때 아이 이름, 아이 소개, 고른 기간의 기록 글이 미국의 AI 서비스(OpenAI 등)로 전송돼요. 아이 얼굴 사진은 캐릭터를 만들 때 직접 고른 경우에만 따로 동의를 받고 보내요.",
     anchor: "overseas",
   },
 ];

@@ -131,13 +131,25 @@ export default function IntroPage() {
               )}
             </div>
           </div>
-          <figure className="relative mx-auto w-full max-w-[420px] px-6 sm:px-8 lg:ml-auto lg:mr-0">
-            <a href="#book" className="editorial-cover relative block overflow-hidden rounded-r-md border border-hairline bg-paper">
-              <img src={sampleBook.coverImageUrl} alt={`${sampleBook.title} 그림책 표지. 눌러서 미리 읽기`} className="aspect-[4/5] w-full object-cover" />
-              <div className="border-t border-hairline bg-canvas px-6 py-5">
-                <p className="text-[11px] tracking-widest text-sand-ink">하루동화 그림책 · 01</p>
-                <p className="mt-2 font-book text-2xl font-bold">{sampleBook.title}</p>
-              </div>
+          <figure className="relative mx-auto w-full max-w-[380px] px-8 sm:px-10 lg:ml-auto lg:mr-0">
+            {/* 서재·뷰어와 같은 덮인 하드커버 책 */}
+            <a href="#book" className="book-closed relative block">
+              <span className="relative block aspect-[2/3] overflow-hidden rounded-r-[6px] bg-sand-soft">
+                <img
+                  src={sampleBook.coverImageUrl}
+                  alt={`${sampleBook.title} 그림책 표지. 눌러서 미리 읽기`}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <span className="absolute inset-0 bg-gradient-to-b from-[#fffdf7]/70 via-transparent to-transparent" />
+                <span className="absolute inset-y-0 left-0 w-[5%] bg-gradient-to-r from-brown/30 via-brown/10 to-transparent" />
+                <span className="book-cover-hinge absolute inset-y-0 left-[6.5%] w-[1.4%]" aria-hidden />
+                <span className="absolute inset-x-[9%] top-[7%] text-center">
+                  <span className="block font-book text-[12px] tracking-[0.2em] text-sand-ink">하루동화 그림책</span>
+                  <span className="mt-1.5 block font-book text-[28px] font-bold leading-tight text-brown [text-shadow:0_1px_12px_rgba(255,253,247,0.9)]">
+                    {sampleBook.title}
+                  </span>
+                </span>
+              </span>
             </a>
             <figcaption className="mt-5 flex justify-between gap-3 text-xs text-brown/60">
               <span>한 주의 기록으로 만든 그림책</span><a href="#book" className="underline underline-offset-4">펼쳐 보기 →</a>
@@ -278,7 +290,7 @@ export default function IntroPage() {
           <div className="mt-12 grid gap-5 md:grid-cols-3">
             {[
               [Lock, "기록과 동화의 공개 범위", "작성한 기록과 동화는 다른 이용자에게 공개되지 않으며, 로그인한 계정에서 확인할 수 있습니다.", "bg-ocean-light text-ocean-deep"],
-              [ShieldCheck, "아이 사진의 사용 범위", "업로드한 아이 사진은 일상 기록에 보관됩니다. 동화 삽화에는 알려 주신 나이와 생김새로 그린 그림책 캐릭터를 사용하며, 아이의 얼굴 사진을 그림 생성에 사용하지 않습니다.", "bg-forest-light text-forest"],
+              [ShieldCheck, "아이 사진의 사용 범위", "기록에 올린 사진은 일상 기록에만 보관됩니다. 동화 삽화에는 알려 주신 나이와 생김새로 그린 그림책 캐릭터를 쓰며, 얼굴 사진 캐릭터는 보호자가 직접 사진을 골라 동의한 경우에만 만들고 사진은 바로 지웁니다.", "bg-forest-light text-forest"],
               [CloudCheck, "작성 중인 기록도 자동 저장", "사진은 선택하면 업로드되고, 작성 중인 글은 자동으로 임시 저장됩니다. 저장된 기록은 언제든 수정하거나 삭제할 수 있습니다.", "bg-sand-light text-sand-ink"],
             ].map(([Icon, title, body, tone]) => {
               const I = Icon as typeof Lock;
@@ -366,7 +378,7 @@ const FAQS = [
   },
   {
     q: "아이 사진이 그대로 동화 캐릭터가 되나요?",
-    a: "아니요. 아이 얼굴 사진은 그림 생성에 쓰지 않아요. 알려 주신 나이와 생김새(머리 모양, 안경 같은 특징)로 아이와 닮은 수채화 캐릭터를 그려, 아이 이름을 달고 주인공이 돼요.",
+    a: "기본은 알려 주신 나이와 생김새(머리 모양, 안경 같은 특징)로 아이와 닮은 수채화 캐릭터를 그려요. 원하시면 얼굴 사진 한 장으로 아이 얼굴에 그림책 몸을 입힌 캐릭터도 만들 수 있고, 둘 중 마음에 드는 쪽을 골라 쓰면 돼요. 사진은 캐릭터를 그린 직후 지워요.",
   },
   {
     q: "기록이 얼마나 있어야 동화를 만들 수 있나요?",

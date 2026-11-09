@@ -58,6 +58,16 @@ export default function PrivacyPage() {
                   <td className={cell}>아이에게 맞는 동화 생성</td>
                 </tr>
                 <tr>
+                  <td className={cell}>얼굴 사진 (선택)</td>
+                  <td className={cell}>얼굴 사진 캐릭터를 만들 때 보호자가 고른 아이 얼굴 사진, 이용 동의 일시</td>
+                  <td className={cell}>아이 얼굴을 닮은 주인공 캐릭터 생성. 캐릭터를 그린 직후 사진은 지움</td>
+                </tr>
+                <tr>
+                  <td className={cell}>주인공 캐릭터</td>
+                  <td className={cell}>생김새나 얼굴 사진으로 그린 캐릭터 그림</td>
+                  <td className={cell}>동화 삽화의 주인공으로 사용</td>
+                </tr>
+                <tr>
                   <td className={cell}>기록</td>
                   <td className={cell}>기록 글, 날씨, 기분, 사진, 꾸미기 정보</td>
                   <td className={cell}>성장 기록 보관과 보기, 동화 재료</td>
@@ -75,7 +85,7 @@ export default function PrivacyPage() {
               </tbody>
             </table>
           </div>
-          <p>아이 사진은 기록을 보여 주는 데에만 쓰고, 동화 삽화를 만드는 데 쓰거나 AI 서비스로 보내지 않습니다.</p>
+          <p>기록에 올린 사진은 기록을 보여 주는 데에만 쓰고 AI 서비스로 보내지 않습니다. 얼굴 사진은 보호자가 얼굴 사진 캐릭터를 만들기로 직접 고르고 따로 동의한 경우에만 받으며, 캐릭터를 그린 직후 지웁니다.</p>
         </Section>
 
         <Section id="child" title="2. 만 14세 미만 아동의 개인정보">

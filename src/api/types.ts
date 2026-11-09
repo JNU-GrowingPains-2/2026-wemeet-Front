@@ -29,6 +29,13 @@ export interface ChildInput {
   appearance?: ChildAppearance | null;
 }
 
+export interface CharacterInput {
+  mode: "appearance" | "photo";
+  // photo 방식: uploadPhoto 로 올린 얼굴 사진과 AI 전송 동의
+  facePhotoId?: string;
+  faceConsent?: boolean;
+}
+
 export interface SaveDiaryInput {
   text: string;
   weather?: Weather | null;

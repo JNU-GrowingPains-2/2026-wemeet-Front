@@ -70,15 +70,14 @@ function Cover({ book }: { book: StoryBookData }) {
       <div className="absolute inset-0 bg-gradient-to-b from-[#fffdf7]/70 via-transparent to-transparent" />
       {/* 하드커버 책등 느낌 */}
       <div className="absolute inset-y-0 left-0 w-[5%] bg-gradient-to-r from-brown/30 via-brown/10 to-transparent" />
+      <div className="book-cover-hinge absolute inset-y-0 left-[6.5%] w-[1.4%]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 rounded-r-[6px] shadow-[inset_0_0_0_1px_rgb(0_0_0/0.08),inset_-3px_0_6px_rgb(255_255_255/0.25)]" aria-hidden />
       <div className="absolute inset-x-[9%] top-[7%] text-center">
         <p className="font-book text-[0.78em] tracking-[0.2em] text-sand-ink">하루동화 그림책</p>
         <h2 className="mt-[0.4em] font-book text-[1.9em] font-bold leading-[1.25] text-brown [text-shadow:0_1px_12px_rgba(255,253,247,0.9)]">
           {book.title}
         </h2>
       </div>
-      <p className="absolute inset-x-0 bottom-[5%] text-center font-book text-[0.78em] text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.45)]">
-        주인공 {book.protagonistName}
-      </p>
     </div>
   );
 }

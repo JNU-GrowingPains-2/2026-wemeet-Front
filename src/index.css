@@ -146,21 +146,93 @@ body {
   inset: 0;
   pointer-events: none;
 }
+/* 접힌 골로 종이가 휘어 들어가는 그늘과, 바깥 가장자리의 옅은 그늘 */
 .book-gutter-right::after {
-  background: linear-gradient(
-    to right,
-    rgb(63 56 51 / 0.22) 0,
-    rgb(63 56 51 / 0.06) 4%,
-    transparent 10%
-  );
+  background:
+    linear-gradient(to right, rgb(63 56 51 / 0.28) 0, rgb(63 56 51 / 0.1) 3%, rgb(63 56 51 / 0.03) 7%, transparent 11%),
+    linear-gradient(to left, rgb(63 56 51 / 0.06), transparent 3%);
 }
 .book-gutter-left::after {
-  background: linear-gradient(
-    to left,
-    rgb(63 56 51 / 0.22) 0,
-    rgb(63 56 51 / 0.06) 4%,
-    transparent 10%
-  );
+  background:
+    linear-gradient(to left, rgb(63 56 51 / 0.3) 0, rgb(63 56 51 / 0.11) 3%, rgb(63 56 51 / 0.03) 7%, transparent 11%),
+    linear-gradient(to right, rgb(63 56 51 / 0.06), transparent 3%);
+}
+
+/* 하드커버 판지: 종이보다 몇 px만 크게, 진한 천 장정 색으로 */
+.book-cover-board {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 7px;
+  background: linear-gradient(170deg, #7a5a44, #5c4232 60%, #4d372a);
+  box-shadow:
+    0 30px 46px -22px rgb(42 32 26 / 0.55),
+    0 12px 24px -8px rgb(42 32 26 / 0.28),
+    0 2px 4px rgb(42 32 26 / 0.2),
+    inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+/* 쌓인 종이 단면: 얇은 선이 겹겹이 보이게 */
+.book-page-edges {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(var(--edge-dir), #fbf6ec 0 1px, #ddd2bf 1px 2px);
+}
+.book-page-edges-right {
+  --edge-dir: to right;
+  border-radius: 0 3px 3px 0;
+  box-shadow: inset -1px 0 0 rgb(63 56 51 / 0.12);
+}
+.book-page-edges-left {
+  --edge-dir: to left;
+  border-radius: 3px 0 0 3px;
+  box-shadow: inset 1px 0 0 rgb(63 56 51 / 0.12);
+}
+/* 가운데 책등: 아주 가는 접힘 선 */
+.book-spine {
+  position: absolute;
+  top: 0;
+  z-index: 999;
+  width: 2px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(63 56 51 / 0.05), rgb(63 56 51 / 0.22) 50%, rgb(63 56 51 / 0.05));
+}
+/* 덮인 책(소개 페이지 표지): 뷰어와 같은 판지와 종이 단면 */
+.book-closed::before {
+  content: "";
+  position: absolute;
+  inset: -7px -14px -7px 0;
+  z-index: -1;
+  border-radius: 2px 7px 7px 2px;
+  background: linear-gradient(170deg, #7a5a44, #5c4232 60%, #4d372a);
+  box-shadow:
+    0 30px 46px -22px rgb(42 32 26 / 0.55),
+    0 12px 24px -8px rgb(42 32 26 / 0.28),
+    0 2px 4px rgb(42 32 26 / 0.2);
+}
+.book-closed::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  right: -6px;
+  width: 6px;
+  border-radius: 0 3px 3px 0;
+  background: repeating-linear-gradient(to right, #fbf6ec 0 1px, #ddd2bf 1px 2px);
+  pointer-events: none;
+}
+.book-closed { isolation: isolate; transition: transform 0.3s ease; }
+.book-closed:hover { transform: translateY(-3px) rotate(-0.4deg); }
+
+/* 가름끈: 아래로 늘어진 리본, 끝은 제비꼬리 */
+.book-ribbon {
+  background: linear-gradient(90deg, #9c3a2c, #c4513c 50%, #9c3a2c);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  filter: drop-shadow(0 2px 2px rgb(63 56 51 / 0.3));
+}
+/* 표지 경첩 홈 */
+.book-cover-hinge {
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.14), rgb(255 255 255 / 0.3) 55%, transparent);
 }
 
 .book-text p + p {
@@ -297,7 +369,6 @@ button, a, input, textarea, select { touch-action: manipulation; }
 :focus-visible { outline: 2px solid var(--color-ocean-deep); outline-offset: 4px; }
 h1, h2, h3 { letter-spacing: -0.025em; }
 ::selection { background: var(--color-sand-soft); }
-.editorial-cover { box-shadow: -4px 0 0 #deded2, 0 16px 36px -16px rgb(48 56 47 / 0.3); }
 
 /* Reading and interface type have distinct roles. */
 body { line-height: 1.65; }

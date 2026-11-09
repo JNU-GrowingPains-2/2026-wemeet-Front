@@ -203,6 +203,8 @@ export default function PageFlipper({
   const closedBack = spread && flipped === total && (!motion || motion.leaf === total - 1);
   const shift = closedFront && !motion ? -pageWidth / 2 : closedBack && !motion ? pageWidth / 2 : 0;
 
+  const open = spread && !closedFront && !closedBack;
+
   return (
     <div
       className="book-stage relative mx-auto select-none"
@@ -219,11 +221,59 @@ export default function PageFlipper({
         className="absolute inset-0 transition-transform duration-700 ease-[cubic-bezier(.3,.7,.2,1)]"
         style={{ transform: `translateX(${shift}px)` }}
       >
-        {/* 책 아래 그림자 */}
-        {spread && !closedFront && !closedBack && (
+        {/* 하드커버와 페이지 두께: 판지는 종이보다 몇 px만 크고, 종이 단면은 장수만큼 두꺼워진다 */}
+        {(() => {
+          const pad = Math.round(Math.max(5, Math.min(9, pageWidth * 0.018)));
+          const edge = (count: number) => Math.round(Math.min(7, 2 + count * 0.5));
+          const leftPages = spread ? flipped : 0;
+          const rightPages = total - flipped;
+          const rightEdge = spread ? pageWidth * 2 : pageWidth;
+          // 덮인 책은 책등 쪽(왼쪽)으로 판지가 나오지 않는다.
+          const boardLeft = closedFront ? pageWidth : spread && !closedBack ? -pad : 0;
+          const boardRight = closedBack ? pageWidth : rightEdge + pad;
+          const rightEdgeW = !closedBack && rightPages > 0 ? edge(rightPages) : 0;
+          const leftEdgeW = spread && !closedFront && leftPages > 0 ? edge(leftPages) : 0;
+          return (
+            <>
+              <div
+                className="book-cover-board"
+                style={{
+                  left: boardLeft - leftEdgeW,
+                  width: boardRight - boardLeft + leftEdgeW + rightEdgeW + (closedBack ? pad : 0),
+                  top: -pad,
+                  height: pageHeight + pad * 2,
+                }}
+                aria-hidden
+              />
+              {rightEdgeW > 0 && (
+                <div
+                  className="book-page-edges book-page-edges-right"
+                  style={{ left: rightEdge, width: rightEdgeW, top: 2, height: pageHeight - 4 }}
+                  aria-hidden
+                />
+              )}
+              {leftEdgeW > 0 && (
+                <div
+                  className="book-page-edges book-page-edges-left"
+                  style={{ left: -leftEdgeW, width: leftEdgeW, top: 2, height: pageHeight - 4 }}
+                  aria-hidden
+                />
+              )}
+              {open && <div className="book-spine" style={{ left: pageWidth - 1, height: pageHeight }} aria-hidden />}
+            </>
+          );
+        })()}
+        {/* 가름끈: 책 아래로 늘어진 리본 */}
+        {open && (
           <div
-            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-6 rounded-[50%] bg-brown/25 blur-xl"
             aria-hidden
+            className="book-ribbon pointer-events-none absolute"
+            style={{
+              left: pageWidth * 1.82,
+              top: pageHeight - 2,
+              width: Math.max(8, pageWidth * 0.024),
+              height: Math.max(22, pageHeight * 0.05),
+            }}
           />
         )}
         {leaves.map((leaf, i) => {

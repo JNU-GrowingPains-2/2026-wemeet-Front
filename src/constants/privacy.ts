@@ -13,8 +13,8 @@ export const OVERSEAS_TRANSFERS = [
     company: "OpenAI, L.L.C.",
     country: "미국",
     contact: "privacy@openai.com",
-    purpose: "동화 글과 삽화 생성",
-    items: "아이 이름, 주인공 성별 캐릭터, 나이, 아이 소개, 부모님이 쓴 메시지와 교훈 태그, 고른 기간의 기록 글·날씨·기분",
+    purpose: "주인공 캐릭터, 동화 글과 삽화 생성",
+    items: "아이 이름, 주인공 성별, 나이, 생김새, 아이 소개, 주인공 캐릭터 그림, 부모님이 쓴 메시지와 교훈 태그, 고른 기간의 기록 글·날씨·기분, 얼굴 사진(얼굴 사진 캐릭터를 고르고 동의한 경우에만)",
   },
   {
     company: "Anthropic, PBC",

@@ -51,7 +51,7 @@ export default function SettingsPage() {
       if (appearanceDirty) {
         await updateAppearance.mutateAsync({ appearance: isAppearanceEmpty(appearance) ? null : appearance });
       }
-      await createCharacter.mutateAsync();
+      await createCharacter.mutateAsync({ mode: "appearance" });
       navigate("/character");
     } catch {
       // 오류는 아래에 표시한다.
@@ -211,8 +211,8 @@ export default function SettingsPage() {
           <li className="flex gap-3">
             <ShieldCheck size={20} className="shrink-0 text-sand-ink" aria-hidden />
             <div>
-              <p className="font-semibold text-brown">아이 사진으로 그림을 만들지 않아요</p>
-              <p className="text-brown/55">동화 삽화는 그림책 캐릭터로 그려요. 사진은 기록을 보여줄 때만 쓰여요.</p>
+              <p className="font-semibold text-brown">아이 사진은 고른 경우에만 써요</p>
+              <p className="text-brown/55">기록 사진은 기록을 보여줄 때만 쓰여요. 얼굴 사진 캐릭터를 만들 때 고른 사진은 캐릭터를 그린 직후 지워요.</p>
             </div>
           </li>
           {!USE_MOCK && (

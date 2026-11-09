@@ -13,7 +13,12 @@ export const toChild = ({ id, name, birthDate, gender, profile, appearance }: Mo
   profile: profile ?? null,
   appearance: appearance ?? null,
   characterStatus: gender ? "ready" : "none",
-  characterImageUrl: gender ? characterArt[gender].full : null,
+  // 기본 캐릭터는 프로필 사진(portrait)이 따로 있어서, 아이별 캐릭터 그림 자리는 비워 둔다.
+  characterImageUrl: null,
+  characters: gender
+    ? [{ id: `mock-${gender}`, mode: "appearance", imageUrl: characterArt[gender].full, createdAt: new Date(0).toISOString() }]
+    : [],
+  selectedCharacterId: gender ? `mock-${gender}` : null,
 });
 
 function cleanAppearance(appearance: ChildAppearance | null | undefined): ChildAppearance | null {
@@ -85,11 +90,19 @@ export const mockChildrenApi: ChildrenApi = {
     return toChild(child);
   },
 
-  async createCharacter(childId) {
+  async selectCharacter(childId) {
+    await simulateNetwork();
+    return toChild(requireChild(childId));
+  },
+
+  async createCharacter(childId, input) {
     await simulateNetwork();
     const db = loadDb();
     const child = requireChild(childId, db);
     if (!child.gender) fail(400, "GENDER_REQUIRED", "주인공 모습(여자아이·남자아이)을 먼저 골라 주세요.");
+    if (input?.mode === "photo" && !input.faceConsent) {
+      fail(400, "FACE_CONSENT_REQUIRED", "얼굴 사진을 AI로 보내는 데 동의해 주셔야 만들 수 있어요.");
+    }
     return toChild(child);
   },
 };

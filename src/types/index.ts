@@ -29,6 +29,16 @@ export interface ChildAppearance {
 // none: 아직 없음, queued·processing: 그리는 중, ready: 완성, failed: 마지막 시도 실패
 export type CharacterStatus = "none" | "queued" | "processing" | "ready" | "failed";
 
+// appearance: 생김새로 그린 캐릭터, photo: 아이 얼굴 사진과 캐릭터 몸을 합친 캐릭터
+export type CharacterMode = "appearance" | "photo";
+
+export interface CharacterVersion {
+  id: string;
+  mode: CharacterMode;
+  imageUrl: string;
+  createdAt: string;
+}
+
 export interface Child {
   id: string;
   name: string;
@@ -39,6 +49,9 @@ export interface Child {
   characterStatus: CharacterStatus;
   // 지금 쓰는 주인공 캐릭터 그림. 없으면 성별 기본 캐릭터를 쓴다.
   characterImageUrl: string | null;
+  // 고를 수 있는 캐릭터(방식별 최신 1개씩)와 지금 쓰는 캐릭터
+  characters: CharacterVersion[];
+  selectedCharacterId: string | null;
 }
 
 export interface DiaryPhoto {
