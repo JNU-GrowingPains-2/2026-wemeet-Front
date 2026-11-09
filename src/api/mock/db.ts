@@ -1,6 +1,6 @@
 // 목업 API가 쓰는 localStorage 저장소. 새로고침해도 데이터가 유지된다.
 import { ApiError } from "../client";
-import type { ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, Weather } from "../../types";
+import type { CharacterMode, ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, Weather } from "../../types";
 
 const DB_KEY = "harudonghwa.mock.db.v2";
 
@@ -19,6 +19,9 @@ export interface MockChild {
   gender: ChildGender | null;
   profile?: ChildProfile | null;
   appearance?: ChildAppearance | null;
+  // 목업 얼굴 사진 캐릭터를 만든 시각과 지금 고른 캐릭터 방식
+  photoCharacterAt?: string | null;
+  selectedMode?: CharacterMode;
 }
 
 export interface MockDiary {

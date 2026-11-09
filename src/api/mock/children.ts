@@ -1,25 +1,33 @@
 import type { ChildrenApi } from "../children";
-import type { Child, ChildAppearance, ChildProfile } from "../../types";
+import type { CharacterVersion, Child, ChildAppearance, ChildProfile } from "../../types";
 import { characterArt } from "../../assets/art";
 import { loadDb, newId, saveDb, type MockChild } from "./db";
 import { fail, requireChild, requireUser, simulateNetwork } from "./util";
 
 // 목업에서는 캐릭터를 새로 그리지 않고, 고른 성별의 기본 캐릭터를 완성된 캐릭터로 보여 준다.
-export const toChild = ({ id, name, birthDate, gender, profile, appearance }: MockChild): Child => ({
-  id,
-  name,
-  birthDate,
-  gender: gender ?? null,
-  profile: profile ?? null,
-  appearance: appearance ?? null,
-  characterStatus: gender ? "ready" : "none",
-  // 기본 캐릭터는 프로필 사진(portrait)이 따로 있어서, 아이별 캐릭터 그림 자리는 비워 둔다.
-  characterImageUrl: null,
-  characters: gender
+// 얼굴 사진 캐릭터는 실제로 그리지 않고 기본 캐릭터의 얼굴 그림으로 대신한다.
+export const toChild = ({ id, name, birthDate, gender, profile, appearance, photoCharacterAt, selectedMode }: MockChild): Child => {
+  const characters: CharacterVersion[] = gender
     ? [{ id: `mock-${gender}`, mode: "appearance", imageUrl: characterArt[gender].full, createdAt: new Date(0).toISOString() }]
-    : [],
-  selectedCharacterId: gender ? `mock-${gender}` : null,
-});
+    : [];
+  if (gender && photoCharacterAt) {
+    characters.push({ id: `mock-${gender}-photo`, mode: "photo", imageUrl: characterArt[gender].portrait, createdAt: photoCharacterAt });
+  }
+  const selected = characters.find((c) => c.mode === (selectedMode ?? "appearance")) ?? characters[0] ?? null;
+  return {
+    id,
+    name,
+    birthDate,
+    gender: gender ?? null,
+    profile: profile ?? null,
+    appearance: appearance ?? null,
+    characterStatus: gender ? "ready" : "none",
+    // 기본 캐릭터는 프로필 사진(portrait)이 따로 있어서, 생김새 캐릭터일 때는 아이별 그림 자리를 비워 둔다.
+    characterImageUrl: selected?.mode === "photo" ? selected.imageUrl : null,
+    characters,
+    selectedCharacterId: selected?.id ?? null,
+  };
+};
 
 function cleanAppearance(appearance: ChildAppearance | null | undefined): ChildAppearance | null {
   if (!appearance) return null;
@@ -90,9 +98,15 @@ export const mockChildrenApi: ChildrenApi = {
     return toChild(child);
   },
 
-  async selectCharacter(childId) {
+  async selectCharacter(childId, characterId) {
     await simulateNetwork();
-    return toChild(requireChild(childId));
+    const db = loadDb();
+    const child = requireChild(childId, db);
+    const version = toChild(child).characters.find((c) => c.id === characterId);
+    if (!version) fail(404, "CHARACTER_NOT_FOUND", "고른 캐릭터를 찾지 못했어요.");
+    child.selectedMode = version.mode;
+    saveDb(db);
+    return toChild(child);
   },
 
   async createCharacter(childId, input) {
@@ -103,6 +117,11 @@ export const mockChildrenApi: ChildrenApi = {
     if (input?.mode === "photo" && !input.faceConsent) {
       fail(400, "FACE_CONSENT_REQUIRED", "얼굴 사진을 AI로 보내는 데 동의해 주셔야 만들 수 있어요.");
     }
+    // 서버처럼 새로 만든 캐릭터를 바로 주인공으로 고른다.
+    const mode = input?.mode ?? "appearance";
+    if (mode === "photo") child.photoCharacterAt = new Date().toISOString();
+    child.selectedMode = mode;
+    saveDb(db);
     return toChild(child);
   },
 };

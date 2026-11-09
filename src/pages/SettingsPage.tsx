@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { CloudCheck, Info, KeyRound, Lock, LogOut, Paintbrush, ShieldCheck } from "lucide-react";
 import { USE_MOCK, errorMessage } from "../api";
 import { useAuth, useCurrentChild } from "../auth/authContext";
 import PageHeader from "../components/layout/PageHeader";
 import Button from "../components/common/Button";
+import CharacterVersions, { isCharacterDrawing } from "../components/Character/CharacterVersions";
+import PhotoCharacterForm from "../components/Character/PhotoCharacterForm";
 import CharacterAvatar from "../components/common/CharacterAvatar";
 import CharacterPicker from "../components/common/CharacterPicker";
 import TextField from "../components/common/TextField";
@@ -20,7 +22,6 @@ import {
 } from "../utils/childProfile";
 import { useToast } from "../components/common/toastContext";
 import { useChangePassword, useCreateCharacter, useUpdateChild } from "../hooks/useAccount";
-import { characterArt } from "../assets/art";
 import type { ChildAppearance, ChildGender, ChildProfile } from "../types";
 import { todayString } from "../utils/date";
 
@@ -128,15 +129,14 @@ export default function SettingsPage() {
   const updateProfile = useUpdateChild(child.id);
   const profileDirty = !sameProfile(profile, child.profile);
 
-  const navigate = useNavigate();
   const [appearance, setAppearance] = useState<ChildAppearance>(toAppearanceForm(child.appearance));
   const updateAppearance = useUpdateChild(child.id);
   const createCharacter = useCreateCharacter(child.id);
   const appearanceDirty = !sameAppearance(appearance, child.appearance);
-  const drawing = child.characterStatus === "queued" || child.characterStatus === "processing";
+  const drawing = isCharacterDrawing(child);
   const redrawPending = updateAppearance.isPending || createCharacter.isPending;
 
-  // 바뀐 생김새를 저장한 뒤 그 모습으로 새로 그리고, 캐릭터 화면에서 결과를 보여 준다.
+  // 바뀐 생김새를 저장한 뒤 그 모습으로 새로 그린다. 결과는 위 캐릭터 목록에 나타난다.
   const redraw = async () => {
     if (redrawPending) return;
     try {
@@ -144,7 +144,6 @@ export default function SettingsPage() {
         await updateAppearance.mutateAsync({ appearance: isAppearanceEmpty(appearance) ? null : appearance });
       }
       await createCharacter.mutateAsync({ mode: "appearance" });
-      navigate("/character");
     } catch {
       // 오류는 아래에 표시한다.
     }
@@ -178,10 +177,16 @@ export default function SettingsPage() {
       <section className="rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
         <div className="flex items-center gap-4">
           <CharacterAvatar gender={child.gender} imageUrl={child.characterImageUrl} className="h-16 w-16" />
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold text-brown">{child.name}</h2>
             <p className="text-sm text-brown/55">동화 속 주인공 프로필</p>
           </div>
+          <a
+            href="#character"
+            className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-ocean-deep ring-1 ring-hairline hover:bg-ocean-light"
+          >
+            캐릭터 바꾸기
+          </a>
         </div>
         <form onSubmit={handleSubmit} noValidate className="mt-6 flex flex-col gap-5">
           <TextField
@@ -213,48 +218,41 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      <section className="mt-5 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
+      <section id="character" className="mt-5 scroll-mt-20 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
         <h2 className="text-lg font-bold text-brown">주인공 캐릭터</h2>
-        <p className="mt-1 text-sm text-brown/55">생김새를 고치고 새로 그리면 앞으로 만드는 동화에 반영돼요.</p>
-        <div className="mt-5 flex items-center gap-4">
-          <img
-            src={child.characterImageUrl ?? characterArt[child.gender ?? "girl"].full}
-            alt={`${child.name} 캐릭터`}
-            className="h-36 w-24 rounded-xl bg-paper object-contain ring-1 ring-hairline"
-          />
-          <p className="text-sm text-brown/60">
-            {drawing
-              ? "지금 새 캐릭터를 그리고 있어요."
-              : child.characterStatus === "failed"
-                ? "마지막으로 그리기에 실패했어요. 다시 그려 주세요."
-                : child.characterImageUrl
-                  ? "동화 속 주인공은 이 모습으로 등장해요."
-                  : "아직 아이만의 캐릭터가 없어서 기본 캐릭터로 그려요."}
-          </p>
+        <p className="mt-1 text-sm text-brown/55">눌러서 고른 캐릭터가 앞으로 만드는 동화의 주인공이 돼요. 이미 만든 동화는 그대로예요.</p>
+        <div className="mt-5">
+          <CharacterVersions child={child} columns={3} />
         </div>
-        <div className="mt-6">
-          <AppearanceFields value={appearance} onChange={setAppearance} />
+
+        <div className="mt-8 border-t border-hairline pt-6">
+          <h3 className="text-base font-bold text-brown">생김새로 새로 그리기</h3>
+          <p className="mt-1 text-sm text-brown/55">생김새를 고치고 새로 그리면 고를 수 있는 캐릭터에 추가돼요.</p>
+          <div className="mt-5">
+            <AppearanceFields value={appearance} onChange={setAppearance} />
+          </div>
+          {(updateAppearance.isError || createCharacter.isError) && (
+            <p role="alert" className="mt-4 text-sm text-error">
+              {errorMessage(updateAppearance.error ?? createCharacter.error)}
+            </p>
+          )}
+          <Button
+            size="lg"
+            className="mt-6 w-full"
+            loading={redrawPending}
+            disabled={drawing || !child.gender}
+            onClick={() => void redraw()}
+          >
+            <Paintbrush size={17} aria-hidden />
+            {drawing ? "그리는 중이에요" : "이 모습으로 새로 그리기"}
+          </Button>
         </div>
-        {(updateAppearance.isError || createCharacter.isError) && (
-          <p role="alert" className="mt-4 text-sm text-error">
-            {errorMessage(updateAppearance.error ?? createCharacter.error)}
-          </p>
-        )}
-        <Button
-          size="lg"
-          className="mt-6 w-full"
-          loading={redrawPending}
-          disabled={drawing || !child.gender}
-          onClick={() => void redraw()}
-        >
-          <Paintbrush size={17} aria-hidden />
-          {drawing ? "그리는 중이에요" : "이 모습으로 새로 그리기"}
-        </Button>
-        {drawing && (
-          <Link to="/character" className="mt-2 block text-center text-sm font-semibold text-ocean-deep underline underline-offset-2">
-            그리는 모습 보러 가기
-          </Link>
-        )}
+
+        <div className="mt-8 border-t border-hairline pt-6">
+          <h3 className="mb-3 text-base font-bold text-brown">얼굴 사진으로 새로 만들기</h3>
+          <PhotoCharacterForm child={child} />
+        </div>
+        <p className="mt-3 text-center text-xs text-brown/45">캐릭터는 하루에 5번까지 새로 만들 수 있어요.</p>
       </section>
 
       <section className="mt-5 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
