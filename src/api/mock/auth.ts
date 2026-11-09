@@ -45,6 +45,19 @@ export const mockAuthApi: AuthApi = {
     return { accessToken: tokenForUser(user.id), user: publicUser(user) };
   },
 
+  async changePassword(input) {
+    await simulateNetwork();
+    const db = loadDb();
+    const user = requireUser(db);
+    if (user.password !== input.currentPassword) fail(400, "WRONG_PASSWORD", "지금 비밀번호가 맞지 않아요.");
+    if (input.newPassword.length < 8 || input.newPassword.length > 128) {
+      fail(400, "WEAK_PASSWORD", "비밀번호는 8~128자로 입력해 주세요.");
+    }
+    if (input.newPassword === input.currentPassword) fail(400, "SAME_PASSWORD", "지금과 다른 비밀번호로 바꿔 주세요.");
+    user.password = input.newPassword;
+    saveDb(db);
+  },
+
   async getMe() {
     await simulateNetwork();
     const db = loadDb();

@@ -1,6 +1,11 @@
 // API 함수의 입력 타입 (camelCase). 실제 구현과 목업 구현이 함께 쓴다.
 import type { Child, ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, User, Weather } from "../types";
 
+export interface PasswordChangeInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export interface Credentials {
   email: string;
   password: string;

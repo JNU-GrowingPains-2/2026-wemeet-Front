@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { CloudCheck, Info, Lock, LogOut, Paintbrush, ShieldCheck } from "lucide-react";
+import { CloudCheck, Info, KeyRound, Lock, LogOut, Paintbrush, ShieldCheck } from "lucide-react";
 import { USE_MOCK, errorMessage } from "../api";
 import { useAuth, useCurrentChild } from "../auth/authContext";
 import PageHeader from "../components/layout/PageHeader";
@@ -19,10 +19,102 @@ import {
   toProfileForm,
 } from "../utils/childProfile";
 import { useToast } from "../components/common/toastContext";
-import { useCreateCharacter, useUpdateChild } from "../hooks/useAccount";
+import { useChangePassword, useCreateCharacter, useUpdateChild } from "../hooks/useAccount";
 import { characterArt } from "../assets/art";
 import type { ChildAppearance, ChildGender, ChildProfile } from "../types";
 import { todayString } from "../utils/date";
+
+// 로그인한 상태에서 지금 비밀번호를 확인하고 새 비밀번호로 바꾼다.
+function PasswordForm() {
+  const toast = useToast();
+  const change = useChangePassword();
+  const [open, setOpen] = useState(false);
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const nextError =
+    next.length < 8 ? "새 비밀번호는 8자 이상으로 정해 주세요." : next.length > 128 ? "비밀번호는 128자까지 쓸 수 있어요." : undefined;
+  const confirmError = confirm !== next ? "새 비밀번호가 서로 달라요." : undefined;
+  const currentError = current ? undefined : "지금 비밀번호를 입력해 주세요.";
+
+  const reset = () => {
+    setOpen(false);
+    setCurrent("");
+    setNext("");
+    setConfirm("");
+    setSubmitted(false);
+    change.reset();
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+    if (currentError || nextError || confirmError || change.isPending) return;
+    change.mutate(
+      { currentPassword: current, newPassword: next },
+      {
+        onSuccess: () => {
+          reset();
+          toast.show("비밀번호를 바꿨어요. 다음 로그인부터 새 비밀번호를 써 주세요.");
+        },
+      },
+    );
+  };
+
+  if (!open) {
+    return (
+      <Button variant="ghost" className="mt-4 w-full sm:w-auto" onClick={() => setOpen(true)}>
+        <KeyRound size={17} aria-hidden />
+        비밀번호 바꾸기
+      </Button>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} noValidate className="mt-5 flex flex-col gap-4 rounded-xl bg-paper p-4 ring-1 ring-hairline sm:p-5">
+      <TextField
+        label="지금 비밀번호"
+        type="password"
+        autoComplete="current-password"
+        value={current}
+        onChange={(e) => setCurrent(e.target.value)}
+        error={submitted ? currentError : undefined}
+      />
+      <TextField
+        label="새 비밀번호"
+        type="password"
+        autoComplete="new-password"
+        hint="8자 이상"
+        value={next}
+        onChange={(e) => setNext(e.target.value)}
+        error={submitted ? nextError : undefined}
+      />
+      <TextField
+        label="새 비밀번호 확인"
+        type="password"
+        autoComplete="new-password"
+        value={confirm}
+        onChange={(e) => setConfirm(e.target.value)}
+        error={submitted ? confirmError : undefined}
+      />
+      {change.isError && (
+        <p role="alert" className="text-sm text-error">
+          {errorMessage(change.error)}
+        </p>
+      )}
+      <div className="flex gap-2">
+        <Button variant="ghost" className="flex-1" disabled={change.isPending} onClick={reset}>
+          취소
+        </Button>
+        <Button type="submit" className="flex-1" loading={change.isPending}>
+          비밀번호 바꾸기
+        </Button>
+      </div>
+    </form>
+  );
+}
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -232,6 +324,7 @@ export default function SettingsPage() {
       <section className="mt-5 rounded-xl bg-white p-5 ring-1 ring-hairline sm:p-7">
         <h2 className="text-lg font-bold text-brown">계정</h2>
         <p className="mt-1 text-sm text-brown/55">{user?.email}</p>
+        <PasswordForm />
         <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <Link
             to="/intro"

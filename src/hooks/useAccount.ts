@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type CharacterInput, type ChildInput, type Credentials, type MeResult, type SignupInput } from "../api";
+import { api, type CharacterInput, type ChildInput, type Credentials, type MeResult, type PasswordChangeInput, type SignupInput } from "../api";
 import { useAuth } from "../auth/authContext";
 import type { Child } from "../types";
 import { queryKeys } from "./queryKeys";
@@ -15,6 +15,12 @@ export function useSignup() {
   const { signIn } = useAuth();
   return useMutation({
     mutationFn: async (input: SignupInput) => signIn(await api.signup(input)),
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (input: PasswordChangeInput) => api.changePassword(input),
   });
 }
 
