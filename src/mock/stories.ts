@@ -151,3 +151,16 @@ export function buildStory(
 }
 
 export const STORY_SLUGS = Object.keys(TEMPLATES) as StorySlug[];
+
+// 체험 버전의 쪽마다 질문. 실제 서비스에서는 완성된 동화를 보고 쪽마다 따로 만든다.
+export function mockPageQuestions(protagonistName: string) {
+  const p = nameForms(protagonistName.trim() || "우리 아이");
+  return [
+    { questionKind: "가리키기", question: `그림에서 ${p.를} 찾아볼까?`, questionTip: `여기 있네! ${p.는} 무얼 보고 있을까?` },
+    { questionKind: "기분", question: `${p.는} 왜 그런 표정을 지었을까?`, questionTip: "그런 마음이었구나. 얼굴에 다 쓰여 있네." },
+    { questionKind: "예측", question: "다음 장에서는 무슨 일이 일어날까?", questionTip: "오, 그럴 수도 있겠다. 같이 넘겨 볼까?" },
+    { questionKind: "상상", question: `${p.가} 속으로 하고 싶었던 말은 뭘까?`, questionTip: "그 말을 들으면 친구도 웃었겠다." },
+    { questionKind: "떠올리기", question: `처음이랑 지금, ${p.의} 마음은 어떻게 달라졌을까?`, questionTip: "맞아, 아까보다 훨씬 가벼워 보여." },
+    { questionKind: "내 이야기", question: "너는 언제 이런 기분이 들었어?", questionTip: "그때 이야기 더 해 줄래? 궁금하다." },
+  ] as const;
+}

@@ -5,6 +5,8 @@ import type { StorybookPage } from "../../types";
 import { nameForms } from "../../utils/korean";
 import { BrandMark } from "../layout/Brand";
 import PageFlipper, { type Leaf, type PageFlipperHandle } from "./PageFlipper";
+import QuestionPanel from "./QuestionPanel";
+import { QUESTION_KIND_STYLE } from "../../constants/storybook";
 
 export interface StoryBookData {
   title: string;
@@ -15,10 +17,17 @@ export interface StoryBookData {
   protagonistName: string;
   periodLabel: string;
   lessonTag: string | null;
+  // 마지막 쪽 편지. 없으면 부모 메시지를 그대로 싣는다.
+  letter?: string | null;
+  // 쪽마다 음성이 있을 때 읽어 주기 버튼에 붙일 목소리 이름
+  voiceLabel?: string | null;
 }
 
 interface StoryBookProps {
   book: StoryBookData;
+  onSaveAnswer?: (pageNo: number, answer: string) => Promise<unknown>;
+  // 뒤표지까지 처음 다 읽었을 때 한 번 부른다.
+  onFinish?: () => void;
   // 책이 차지할 수 있는 최대 높이(px). 없으면 화면 높이에 맞춘다.
   maxHeight?: number;
   compact?: boolean;
@@ -131,6 +140,19 @@ function Illustration({ page, title }: { page: StorybookPage; title: string }) {
   );
 }
 
+// 책 쪽 아래에 인쇄된 듯 보이는 질문 한 줄
+function PrintedQuestion({ page }: { page: StorybookPage }) {
+  if (!page.question) return null;
+  return (
+    <p className="mt-[1.2em] flex items-start gap-[0.5em] border-t border-dashed border-sand/70 pt-[0.8em] text-[0.82em] leading-[1.6] text-brown/75">
+      <span className={`shrink-0 rounded-full px-[0.6em] py-[0.1em] text-[0.8em] font-semibold ${QUESTION_KIND_STYLE[page.questionKind ?? ""] ?? "bg-paper"}`}>
+        {page.questionKind ?? "질문"}
+      </span>
+      <span className="font-book">{page.question}</span>
+    </p>
+  );
+}
+
 function StoryText({ page, number }: { page: StorybookPage; number: number }) {
   const paragraphs = page.text.split("\n").filter(Boolean);
   return (
@@ -141,6 +163,7 @@ function StoryText({ page, number }: { page: StorybookPage; number: number }) {
           <p key={i}>{line}</p>
         ))}
       </div>
+      <PrintedQuestion page={page} />
       <PageNumber n={number} side="right" />
     </Paper>
   );
@@ -162,6 +185,7 @@ function SinglePage({ page, title, number }: { page: StorybookPage; title: strin
         {paragraphs.map((line, i) => (
           <p key={i}>{line}</p>
         ))}
+        <PrintedQuestion page={page} />
       </div>
       <PageNumber n={number} side="right" />
     </Paper>
@@ -173,7 +197,7 @@ function Letter({ book, gutter }: { book: StoryBookData; gutter?: "left" | "righ
     <Paper gutter={gutter} className="flex flex-col justify-center px-[11%]">
       <p className="text-[0.72em] font-semibold tracking-wider text-sand-ink">이 동화에 담은 마음</p>
       <div className="paper-lined mt-[1em] rounded-[0.6em] px-[0.9em] py-[0.3em] shadow-inner">
-        <p className="ruled-text font-handwriting text-[1.2em] leading-[36px] text-brown">{book.parentMessage}</p>
+        <p className="ruled-text font-handwriting text-[1.2em] leading-[36px] text-brown">{book.letter || book.parentMessage}</p>
       </div>
       <p className="mt-[1em] text-right font-handwriting text-[1.05em] text-brown/70">— {nameForms(book.protagonistName).call}를 사랑하는 엄마, 아빠가</p>
     </Paper>
@@ -247,7 +271,7 @@ function useBookSize(wrapper: React.RefObject<HTMLDivElement | null>, fullscreen
   return size;
 }
 
-export default function StoryBook({ book, maxHeight, compact = false }: StoryBookProps) {
+export default function StoryBook({ book, maxHeight, compact = false, onSaveAnswer, onFinish }: StoryBookProps) {
   const wrapper = useRef<HTMLDivElement>(null);
   const flipper = useRef<PageFlipperHandle>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -256,6 +280,9 @@ export default function StoryBook({ book, maxHeight, compact = false }: StoryBoo
     flipped: 0,
   });
   const [reading, setReading] = useState(false);
+  // 읽어 주다가 질문이 있는 쪽에서 멈춰 아이의 대답을 기다리는 중인 장
+  const [waitingAt, setWaitingAt] = useState<number | null>(null);
+  const finishedRef = useRef(false);
   const leavesCountRef = useRef(0);
   const { width, height } = useBookSize(wrapper, fullscreen, maxHeight);
   const mode: "spread" | "single" = width >= 680 ? "spread" : "single";
@@ -291,7 +318,7 @@ export default function StoryBook({ book, maxHeight, compact = false }: StoryBoo
         <Questions key="questions" book={book} gutter="right" />,
         <BackCover key="back" book={book} />,
       );
-      speak.push(book.parentMessage, book.questions.join(" "), "");
+      speak.push(book.letter || book.parentMessage, book.questions.join(" "), "");
       if (faces.length % 2 === 1) {
         faces.push(<BlankPaper key="blank" gutter="left" />);
         speak.push("");
@@ -310,7 +337,7 @@ export default function StoryBook({ book, maxHeight, compact = false }: StoryBoo
       <Questions key="questions" book={book} />,
       <BackCover key="back" book={book} />,
     ];
-    const speak = [book.title, book.title, ...book.pages.map((p) => p.text), book.parentMessage, book.questions.join(" "), ""];
+    const speak = [book.title, book.title, ...book.pages.map((p) => p.text), book.letter || book.parentMessage, book.questions.join(" "), ""];
     return {
       leaves: faces.map((front, i) => ({ front, back: <BlankPaper key={`blank-${i}`} /> })),
       speech: [...speak, ""],
@@ -322,40 +349,75 @@ export default function StoryBook({ book, maxHeight, compact = false }: StoryBoo
     leavesCountRef.current = total;
   }, [total]);
 
+  // 두 모드 모두 i번째 장면은 flipped = i + 2 일 때 보인다.
+  const sceneIndex = flipped - 2;
+  const currentPage = sceneIndex >= 0 && sceneIndex < book.pages.length ? book.pages[sceneIndex] : null;
+  const hasAudio = book.pages.some((p) => p.audioUrl);
+
+  useEffect(() => {
+    if (flipped >= total && total > 0 && !finishedRef.current) {
+      finishedRef.current = true;
+      onFinish?.();
+    }
+  }, [flipped, total, onFinish]);
 
   // ---------- 읽어주기 ----------
   const canSpeak = typeof window !== "undefined" && "speechSynthesis" in window;
+  const canRead = canSpeak || hasAudio;
   useEffect(() => {
-    if (!reading || !canSpeak) return;
-    const text = speech[flipped] ?? "";
-    const synth = window.speechSynthesis;
-    synth.cancel();
+    if (!reading || !canRead) return;
     if (flipped >= total) return;
     let timer: number | undefined;
-    if (!text) {
+    let cancelled = false;
+    // 질문이 있는 쪽은 다 읽고 멈춰서 아이와 이야기할 시간을 준다.
+    const afterRead = () => {
+      if (cancelled) return;
+      if (currentPage?.question) setWaitingAt(flipped);
+      else timer = window.setTimeout(() => flipper.current?.next(), 700);
+    };
+    const audioUrl = currentPage?.audioUrl;
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audio.onended = afterRead;
+      audio.onerror = afterRead;
+      void audio.play().catch(afterRead);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+        audio.onended = null;
+        audio.onerror = null;
+        audio.pause();
+      };
+    }
+    const text = speech[flipped] ?? "";
+    // 음성 파일로 읽는 책은 장면이 아닌 쪽(표지, 편지)은 조용히 넘긴다.
+    if (!text || hasAudio || !canSpeak) {
       timer = window.setTimeout(() => flipper.current?.next(), 900);
       return () => window.clearTimeout(timer);
     }
+    const synth = window.speechSynthesis;
+    synth.cancel();
     const utter = new SpeechSynthesisUtterance(text.replace(/\n/g, " "));
     utter.lang = "ko-KR";
     utter.rate = 0.92;
     utter.pitch = 1.05;
     const voice = synth.getVoices().find((v) => v.lang.startsWith("ko"));
     if (voice) utter.voice = voice;
-    utter.onend = () => {
-      timer = window.setTimeout(() => flipper.current?.next(), 700);
-    };
+    utter.onend = afterRead;
     synth.speak(utter);
     return () => {
+      cancelled = true;
       window.clearTimeout(timer);
       utter.onend = null;
       synth.cancel();
     };
-  }, [reading, flipped, speech, total, canSpeak]);
+  }, [reading, flipped, speech, total, canSpeak, canRead, hasAudio, currentPage]);
 
   useEffect(() => () => {
     if (canSpeak) window.speechSynthesis.cancel();
   }, [canSpeak]);
+
+  const waiting = reading && waitingAt === flipped;
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -455,8 +517,21 @@ export default function StoryBook({ book, maxHeight, compact = false }: StoryBoo
         )}
       </div>
 
+      {currentPage?.question && (
+        <div className={fullscreen ? "px-4" : ""}>
+          <QuestionPanel
+            key={currentPage.pageNo}
+            page={currentPage}
+            waiting={waiting}
+            dark={fullscreen}
+            onNext={() => flipper.current?.next()}
+            onSaveAnswer={onSaveAnswer}
+          />
+        </div>
+      )}
+
       <div className={`mt-3 flex items-center justify-center gap-2 ${fullscreen ? "mb-4" : ""}`}>
-        {canSpeak && (
+        {canRead && (
           <button
             type="button"
             onClick={() => setReading((r) => !r)}
@@ -470,7 +545,7 @@ export default function StoryBook({ book, maxHeight, compact = false }: StoryBoo
             }`}
           >
             {reading ? <VolumeX size={16} aria-hidden /> : <Volume2 size={16} aria-hidden />}
-            {reading ? "읽어주기 멈추기" : "소리 내어 읽어주기"}
+            {reading ? "읽어주기 멈추기" : hasAudio && book.voiceLabel ? `${book.voiceLabel}로 읽어주기` : "소리 내어 읽어주기"}
           </button>
         )}
         <button

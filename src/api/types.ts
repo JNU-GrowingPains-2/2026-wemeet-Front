@@ -1,5 +1,5 @@
 // API 함수의 입력 타입 (camelCase). 실제 구현과 목업 구현이 함께 쓴다.
-import type { Child, ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, User, Weather } from "../types";
+import type { Child, ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, StoryMode, StoryReaction, User, Weather } from "../types";
 
 export interface PasswordChangeInput {
   currentPassword: string;
@@ -58,4 +58,16 @@ export interface CreateStorybookInput {
   periodEnd: string;
   parentMessage: string;
   lessonTag?: string | null;
+  // 아래는 모두 선택 항목이다. 보내지 않으면 서버가 정한다.
+  themeTag?: string | null;
+  storyMode?: StoryMode | null;
+  extraDetails?: string | null;
+  // 기록 사진을 AI로 보내 장소와 사물을 읽어도 된다는 부모 동의
+  usePhotos?: boolean;
+}
+
+// 읽은 뒤 남기는 것. 보낸 항목만 바뀐다.
+export interface StorybookFeedbackInput {
+  reaction?: StoryReaction | null;
+  answers?: string[];
 }

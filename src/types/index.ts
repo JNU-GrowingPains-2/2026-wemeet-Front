@@ -93,11 +93,24 @@ export interface DiaryEntry {
 
 export type StorybookStatus = "queued" | "processing" | "completed" | "failed";
 
+export type QuestionKind = "가리키기" | "기분" | "예측" | "상상" | "떠올리기" | "내 이야기";
+
 export interface StorybookPage {
   pageNo: number;
   text: string;
   imageUrl: string;
+  // 이 쪽을 읽고 아이에게 묻는 질문. 예전에 만든 동화에는 없다.
+  question?: string | null;
+  questionKind?: QuestionKind | null;
+  // 아이 대답을 받아 넓혀 줄 부모의 한마디 예시
+  questionTip?: string | null;
+  childAnswer?: string | null;
+  // 읽어 주기 음성(mp3). 만들기 전에는 없다.
+  audioUrl?: string | null;
 }
+
+export type StoryMode = "daily" | "fantasy";
+export type StoryReaction = "loved" | "liked" | "meh";
 
 export interface StorybookSummary {
   id: string;
@@ -108,6 +121,8 @@ export interface StorybookSummary {
   periodEnd: string;
   parentMessage: string;
   lessonTag: string | null;
+  themeTag?: string | null;
+  storyMode?: StoryMode | null;
   coverImageUrl: string | null;
   createdAt: string;
   completedAt: string | null;
@@ -118,4 +133,28 @@ export interface Storybook extends StorybookSummary {
   // 다 읽고 아이와 나눌 질문. completed일 때만 채워지고, 없으면 빈 배열
   questions: string[];
   errorMessage: string | null;
+  // 마지막 쪽에 싣는 부모의 편지. 예전 동화에는 없어서 부모 메시지를 대신 보여 준다.
+  letter?: string | null;
+  // questions 와 같은 순서. 적지 않은 대답은 빈 문자열
+  childAnswers?: string[];
+  reaction?: StoryReaction | null;
+  readCount?: number;
+  narrationVoice?: string | null;
+}
+
+export interface StorybookOptions {
+  lessonTags: string[];
+  themeTags: string[];
+  storyModes: StoryMode[];
+  voices: { id: string; label: string }[];
+}
+
+// 고른 기간의 기록이 동화 재료로 넉넉한지. 만들기 전에 보여 준다.
+export interface StoryReadiness {
+  diaryCount: number;
+  textLength: number;
+  photoCount: number;
+  level: "empty" | "thin" | "ok" | "rich";
+  hints: string[];
+  questions: string[];
 }

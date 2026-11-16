@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type CreateStorybookInput } from "../api";
+import { api, type CreateStorybookInput, type StorybookFeedbackInput } from "../api";
 import type { Storybook, StorybookStatus } from "../types";
 import { queryKeys } from "./queryKeys";
 
@@ -63,4 +63,47 @@ export function useDeleteStorybook(childId: string) {
       void queryClient.invalidateQueries({ queryKey: queryKeys.storybooks(childId) });
     },
   });
+}
+
+export function useStorybookOptions() {
+  return useQuery({
+    queryKey: queryKeys.storybookOptions,
+    queryFn: () => api.getStorybookOptions(),
+    staleTime: Infinity,
+  });
+}
+
+export function useStoryReadiness(childId: string | undefined, from: string, to: string) {
+  return useQuery({
+    queryKey: queryKeys.storyReadiness(childId ?? "", from, to),
+    queryFn: () => api.getStoryReadiness(childId!, from, to),
+    enabled: !!childId,
+  });
+}
+
+// 응답으로 받은 동화로 캐시를 바로 바꾼다.
+function useStorybookUpdate<T>(mutationFn: (input: T) => Promise<Storybook>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (book) => queryClient.setQueryData(queryKeys.storybook(book.id), book),
+  });
+}
+
+export function useSavePageAnswer(id: string) {
+  return useStorybookUpdate(({ pageNo, answer }: { pageNo: number; answer: string }) =>
+    api.savePageAnswer(id, pageNo, answer),
+  );
+}
+
+export function useMakeNarration(id: string) {
+  return useStorybookUpdate((voice: string) => api.makeNarration(id, voice));
+}
+
+export function useSaveStorybookFeedback(id: string) {
+  return useStorybookUpdate((input: StorybookFeedbackInput) => api.saveStorybookFeedback(id, input));
+}
+
+export function useMarkStorybookRead(id: string) {
+  return useMutation({ mutationFn: () => api.markStorybookRead(id) });
 }

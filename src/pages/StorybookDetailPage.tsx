@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { BookOpen, Check, CopyPlus, PenLine, RotateCcw, Trash2 } from "lucide-react";
+import { AudioLines, BookOpen, Check, CopyPlus, PenLine, RotateCcw, Trash2 } from "lucide-react";
 import { USE_MOCK, errorMessage, isApiError } from "../api";
 import { useCurrentChild } from "../auth/authContext";
 import Button from "../components/common/Button";
@@ -10,9 +10,18 @@ import Skeleton from "../components/common/Skeleton";
 import { useToast } from "../components/common/toastContext";
 import StoryBook from "../components/StorybookViewer/StoryBook";
 import { useDiaries } from "../hooks/useDiaries";
-import { useDeleteStorybook, useRetryStorybook, useStorybook } from "../hooks/useStorybooks";
+import {
+  useDeleteStorybook,
+  useMakeNarration,
+  useMarkStorybookRead,
+  useRetryStorybook,
+  useSavePageAnswer,
+  useSaveStorybookFeedback,
+  useStorybook,
+} from "../hooks/useStorybooks";
+import { VOICES } from "../constants/storybook";
 import { brandArt } from "../assets/art";
-import type { Storybook } from "../types";
+import type { Storybook, StoryReaction } from "../types";
 import { formatPeriod, todayString } from "../utils/date";
 import { possessive } from "../utils/korean";
 import type { StorybookDraft } from "./StorybookNewPage";
@@ -107,6 +116,102 @@ function OriginEntries({ book }: { book: Storybook }) {
   );
 }
 
+const REACTIONS: { value: StoryReaction; emoji: string; label: string }[] = [
+  { value: "loved", emoji: "😍", label: "또 읽어 달래요" },
+  { value: "liked", emoji: "🙂", label: "재미있게 들었어요" },
+  { value: "meh", emoji: "😐", label: "시큰둥했어요" },
+];
+
+// 읽어 주기 목소리 고르기와 아이 반응 남기기
+function ReadingTools({ book }: { book: Storybook }) {
+  const toast = useToast();
+  const makeNarration = useMakeNarration(book.id);
+  const saveFeedback = useSaveStorybookFeedback(book.id);
+  const [voice, setVoice] = useState(book.narrationVoice ?? VOICES[0].id);
+  const ready = book.narrationVoice === voice && book.pages.every((p) => p.audioUrl);
+  const current = VOICES.find((v) => v.id === book.narrationVoice);
+
+  return (
+    <div className="mx-auto grid max-w-5xl gap-4 sm:grid-cols-2">
+      <section className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+        <h2 className="flex items-center gap-1.5 text-base font-bold text-brown">
+          <AudioLines size={18} className="text-sand-ink" aria-hidden />
+          목소리 입혀 읽어 주기
+        </h2>
+        <p className="mt-1 text-sm text-brown/55">
+          {USE_MOCK
+            ? "체험 버전에서는 브라우저 기본 목소리로 읽어 줘요."
+            : current && book.pages.every((p) => p.audioUrl)
+              ? `지금은 ${current.label}로 읽어 줘요. 책 아래 '읽어주기'를 눌러 보세요.`
+              : "목소리를 고르면 쪽마다 읽어 줄 음성을 만들어요. 10초쯤 걸려요."}
+        </p>
+        <div className="mt-3 flex gap-2">
+          <label htmlFor="narration-voice" className="sr-only">
+            목소리
+          </label>
+          <select
+            id="narration-voice"
+            value={voice}
+            onChange={(e) => setVoice(e.target.value)}
+            className="min-h-11 min-w-0 flex-1 rounded-lg border border-hairline bg-canvas px-3 text-sm text-brown"
+          >
+            {VOICES.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.label}
+              </option>
+            ))}
+          </select>
+          <Button
+            variant="secondary"
+            disabled={ready}
+            loading={makeNarration.isPending}
+            onClick={() =>
+              makeNarration.mutate(voice, {
+                onSuccess: () => toast.show("목소리를 입혔어요. 책 아래 읽어주기를 눌러 보세요."),
+                onError: (error) => toast.show(errorMessage(error), "error"),
+              })
+            }
+          >
+            {ready ? "준비됐어요" : "이 목소리로"}
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-brown/45">엄마·아빠의 실제 목소리로 읽어 주는 기능은 준비 중이에요.</p>
+      </section>
+      <section className="rounded-xl bg-white p-5 ring-1 ring-hairline">
+        <h2 className="text-base font-bold text-brown">아이 반응은 어땠나요?</h2>
+        <p className="mt-1 text-sm text-brown/55">남겨 주시면 다음 동화를 더 잘 지을 수 있어요.</p>
+        <div className="mt-3 grid grid-cols-3 gap-2" role="radiogroup" aria-label="아이 반응">
+          {REACTIONS.map((r) => {
+            const active = book.reaction === r.value;
+            return (
+              <button
+                key={r.value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                disabled={saveFeedback.isPending}
+                onClick={() =>
+                  saveFeedback.mutate(
+                    { reaction: r.value },
+                    { onError: (error) => toast.show(errorMessage(error), "error") },
+                  )
+                }
+                className={`flex min-h-16 flex-col items-center justify-center rounded-lg text-xs transition-colors ${active ? "bg-brown text-white" : "bg-canvas text-brown ring-1 ring-hairline/70 hover:bg-sand-light"}`}
+              >
+                <span className="text-xl" aria-hidden>
+                  {r.emoji}
+                </span>
+                {r.label}
+              </button>
+            );
+          })}
+        </div>
+        {!!book.readCount && <p className="mt-2 text-xs text-brown/45">끝까지 {book.readCount}번 읽었어요.</p>}
+      </section>
+    </div>
+  );
+}
+
 export default function StorybookDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -117,6 +222,15 @@ export default function StorybookDetailPage() {
   const deleteStorybook = useDeleteStorybook(child.id);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const book = storybookQuery.data;
+  const savePageAnswer = useSavePageAnswer(id ?? "");
+  const markRead = useMarkStorybookRead(id ?? "");
+  const { mutateAsync: saveAnswer } = savePageAnswer;
+  const { mutate: countRead } = markRead;
+  const handleSaveAnswer = useCallback(
+    (pageNo: number, answer: string) => saveAnswer({ pageNo, answer }),
+    [saveAnswer],
+  );
+  const handleFinish = useCallback(() => countRead(), [countRead]);
 
   // 보고 있는 동안 완성되면 알려준다.
   const previousStatus = useRef(book?.status);
@@ -131,6 +245,8 @@ export default function StorybookDetailPage() {
   const draft: StorybookDraft | undefined = book && {
     parentMessage: book.parentMessage,
     lessonTag: book.lessonTag,
+    themeTag: book.themeTag ?? null,
+    storyMode: book.storyMode ?? null,
     periodStart: book.periodStart,
     periodEnd: book.periodEnd,
   };
@@ -229,8 +345,13 @@ export default function StorybookDetailPage() {
                 protagonistName: child.name,
                 periodLabel: period,
                 lessonTag: b.lessonTag,
+                letter: b.letter,
+                voiceLabel: VOICES.find((v) => v.id === b.narrationVoice)?.label ?? null,
               }}
+              onSaveAnswer={handleSaveAnswer}
+              onFinish={handleFinish}
             />
+            <ReadingTools book={b} />
             <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
               <section className="rounded-xl bg-sand-light p-6">
                 <p className="text-xs font-semibold tracking-wider text-sand-ink">이 동화에 담은 마음</p>

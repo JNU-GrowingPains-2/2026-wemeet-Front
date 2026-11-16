@@ -6,4 +6,7 @@ export const queryKeys = {
   diary: (childId: string, date: string) => ["diaries", childId, "date", date] as const,
   storybooks: (childId: string) => ["storybooks", childId] as const,
   storybook: (id: string) => ["storybook", id] as const,
+  storybookOptions: ["storybook-options"] as const,
+  storyReadiness: (childId: string, from: string, to: string) =>
+    ["story-readiness", childId, from, to] as const,
 };

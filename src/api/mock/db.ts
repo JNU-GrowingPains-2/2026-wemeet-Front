@@ -1,6 +1,6 @@
 // 목업 API가 쓰는 localStorage 저장소. 새로고침해도 데이터가 유지된다.
 import { ApiError } from "../client";
-import type { CharacterMode, ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, Weather } from "../../types";
+import type { CharacterMode, ChildAppearance, ChildGender, ChildProfile, DiaryDecoration, Weather, StoryMode, StoryReaction } from "../../types";
 
 const DB_KEY = "harudonghwa.mock.db.v2";
 
@@ -55,6 +55,15 @@ export interface MockStorybook {
   // 생성 작업이 시작된 시각과 시도 횟수. 재시도하면 갱신된다.
   startedAt: string;
   attempt: number;
+  themeTag?: string | null;
+  storyMode?: StoryMode | null;
+  extraDetails?: string | null;
+  // 쪽 번호별 아이 대답과, 다 읽은 뒤 질문의 대답
+  pageAnswers?: Record<number, string>;
+  childAnswers?: string[];
+  reaction?: StoryReaction | null;
+  readCount?: number;
+  narrationVoice?: string | null;
 }
 
 export interface MockDb {

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Lock, NotebookPen, PenLine, Info, BookPlus, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { Lock, NotebookPen, PenLine, Info, BookPlus, ArrowRight, ArrowLeft, Check, Lightbulb, ImageIcon } from "lucide-react";
 import { USE_MOCK, errorMessage } from "../api";
 import { useCurrentChild } from "../auth/authContext";
 import PageHeader from "../components/layout/PageHeader";
@@ -10,7 +10,10 @@ import Skeleton from "../components/common/Skeleton";
 import ConfirmDialog from "../components/common/ConfirmDialog";
 import { useUnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 import {
+  EXTRA_DETAILS_MAX,
   LESSON_TAGS,
+  STORY_MODES,
+  THEME_TAGS,
   PARENT_MESSAGE_EXAMPLES,
   PARENT_MESSAGE_MAX,
   PARENT_MESSAGE_MIN,
@@ -19,7 +22,8 @@ import {
   STORY_PERIOD_PRESETS,
 } from "../constants/storybook";
 import { useDiaries } from "../hooks/useDiaries";
-import { useCreateStorybook } from "../hooks/useStorybooks";
+import { useCreateStorybook, useStoryReadiness } from "../hooks/useStorybooks";
+import type { StoryMode } from "../types";
 import { addDays, daysBetweenInclusive, formatPeriod, todayString } from "../utils/date";
 import { characterArt } from "../assets/art";
 import { nameForms, possessive } from "../utils/korean";
@@ -28,9 +32,18 @@ import { nameForms, possessive } from "../utils/korean";
 export interface StorybookDraft {
   parentMessage?: string;
   lessonTag?: string | null;
+  themeTag?: string | null;
+  storyMode?: StoryMode | null;
   periodStart?: string;
   periodEnd?: string;
 }
+
+const READINESS_LABEL = {
+  empty: { text: "기록이 비어 있어요", className: "bg-error-light text-brown" },
+  thin: { text: "재료가 조금 부족해요", className: "bg-sand-light text-sand-ink" },
+  ok: { text: "이야기를 지을 수 있어요", className: "bg-ocean-light text-ocean-deep" },
+  rich: { text: "재료가 넉넉해요", className: "bg-forest-light text-forest" },
+} as const;
 
 const chipClass = (active: boolean) =>
   [
@@ -67,6 +80,10 @@ export default function StorybookNewPage() {
 
   const [parentMessage, setParentMessage] = useState(draft?.parentMessage ?? "");
   const [lessonTag, setLessonTag] = useState<string | null>(draft?.lessonTag ?? null);
+  const [themeTag, setThemeTag] = useState<string | null>(draft?.themeTag ?? null);
+  const [storyMode, setStoryMode] = useState<StoryMode | null>(draft?.storyMode ?? null);
+  const [extraDetails, setExtraDetails] = useState("");
+  const [usePhotos, setUsePhotos] = useState(false);
   const [periodEnd, setPeriodEnd] = useState(draft?.periodEnd ?? today);
   const [periodStart, setPeriodStart] = useState(
     draft?.periodStart ?? addDays(today, -(STORY_PERIOD_DEFAULT_DAYS - 1)),
@@ -78,7 +95,9 @@ export default function StorybookNewPage() {
   const goStep = (next: number) => { setStep(next); requestAnimationFrame(() => stepHeading.current?.focus()); };
   const createStorybook = useCreateStorybook(child.id);
 
-  const { blocker, allowLeave } = useUnsavedChangesGuard(parentMessage !== (draft?.parentMessage ?? "") || lessonTag !== (draft?.lessonTag ?? null));
+  const { blocker, allowLeave } = useUnsavedChangesGuard(
+    parentMessage !== (draft?.parentMessage ?? "") || lessonTag !== (draft?.lessonTag ?? null) || extraDetails.trim() !== "",
+  );
 
   const messageLength = parentMessage.trim().length;
   const messageError =
@@ -106,6 +125,9 @@ export default function StorybookNewPage() {
   );
   const entries = periodError ? [] : (diariesQuery.data ?? []);
   const hasEntries = entries.length > 0;
+  const photoCount = entries.reduce((n, entry) => n + entry.photos.length, 0);
+  const readinessQuery = useStoryReadiness(periodError || !hasEntries ? undefined : child.id, periodStart, periodEnd);
+  const readiness = readinessQuery.data;
   const canSubmit = !periodError && diariesQuery.isSuccess && hasEntries && !createStorybook.isPending;
 
   const selectPreset = (days: number) => {
@@ -120,7 +142,16 @@ export default function StorybookNewPage() {
     if (messageError) { goStep(2); requestAnimationFrame(() => messageInput.current?.focus()); return; }
     if (!canSubmit) return;
     createStorybook.mutate(
-      { periodStart, periodEnd, parentMessage: parentMessage.trim(), lessonTag },
+      {
+        periodStart,
+        periodEnd,
+        parentMessage: parentMessage.trim(),
+        lessonTag,
+        themeTag,
+        storyMode,
+        extraDetails: extraDetails.trim() || null,
+        usePhotos: usePhotos && photoCount > 0,
+      },
       { onSuccess: (summary) => { allowLeave(); navigate(`/storybooks/${summary.id}`, { replace: true }); } },
     );
   };
@@ -217,6 +248,35 @@ export default function StorybookNewPage() {
               })}
             </div>
             <p className="mt-2 text-xs text-brown/45">고르지 않으면 적어 주신 마음에 가장 어울리는 주제로 지어요.</p>
+
+            <p className="mb-3 mt-7 text-sm font-semibold">요즘 아이의 고민 <span className="ml-1 font-normal text-brown/50">선택</span></p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {THEME_TAGS.map(({ tag, hint }) => {
+                const active = themeTag === tag;
+                return (
+                  <button key={tag} type="button" aria-pressed={active} onClick={() => setThemeTag(active ? null : tag)}
+                    className={["flex min-h-14 flex-col items-center justify-center rounded-lg px-2 text-center transition-colors", active ? "bg-brown text-white" : "bg-canvas text-brown ring-1 ring-hairline/70 hover:bg-sand-light"].join(" ")}>
+                    <span className="text-[15px] font-bold">{tag}</span>
+                    <span className={`text-[11px] ${active ? "text-white/70" : "text-brown/50"}`}>{hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-brown/45">아이가 겪는 일에 맞춰, 그 마음을 다독이는 방향으로 이야기를 지어요.</p>
+
+            <p className="mb-3 mt-7 text-sm font-semibold">이야기 방식</p>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="이야기 방식">
+              {STORY_MODES.map(({ mode, label, hint }) => {
+                const active = storyMode === mode;
+                return (
+                  <button key={label} type="button" role="radio" aria-checked={active} onClick={() => setStoryMode(mode)}
+                    className={["flex min-h-16 flex-col items-center justify-center rounded-lg px-2 text-center transition-colors", active ? "bg-brown text-white" : "bg-canvas text-brown ring-1 ring-hairline/70 hover:bg-sand-light"].join(" ")}>
+                    <span className="text-[15px] font-bold">{label}</span>
+                    <span className={`text-[11px] ${active ? "text-white/70" : "text-brown/50"}`}>{hint}</span>
+                  </button>
+                );
+              })}
+            </div>
           </Step>
 
           <Step n={1} active={step === 1} title="어느 날의 이야기를 담을까요?">
@@ -288,6 +348,49 @@ export default function StorybookNewPage() {
                         </li>
                       ))}
                     </ul>
+                    {readiness && (
+                      <div className="mt-4 rounded-xl bg-canvas p-4">
+                        <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-brown">
+                          <Lightbulb size={16} className="text-sand-ink" aria-hidden />
+                          이야기 재료 살펴보기
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs ${READINESS_LABEL[readiness.level].className}`}>
+                            {READINESS_LABEL[readiness.level].text}
+                          </span>
+                        </p>
+                        {readiness.hints.length > 0 && (
+                          <ul className="mt-2 space-y-1 text-xs leading-relaxed text-brown/65">
+                            {readiness.hints.map((hint) => <li key={hint}>· {hint}</li>)}
+                          </ul>
+                        )}
+                        <label htmlFor="extra-details" className="mt-4 block text-sm font-semibold text-brown">
+                          기록에 덧붙이고 싶은 말 <span className="ml-1 font-normal text-brown/50">선택</span>
+                        </label>
+                        {readiness.questions.length > 0 && (
+                          <p className="mt-1 text-xs text-brown/55">{readiness.questions.join(" ")}</p>
+                        )}
+                        <textarea
+                          id="extra-details"
+                          value={extraDetails}
+                          onChange={(e) => setExtraDetails(e.target.value)}
+                          rows={3}
+                          maxLength={EXTRA_DETAILS_MAX}
+                          placeholder={'예) 문 앞에서 "아빠 가지 마" 하고 다리를 붙잡았어요.'}
+                          className="mt-2 w-full resize-y rounded-xl border border-hairline bg-white p-3 text-sm text-brown outline-none placeholder:text-brown/35 focus:border-ocean focus:ring-4 focus:ring-ocean/15"
+                        />
+                        <p className="mt-1 text-right text-xs text-brown/40">{extraDetails.trim().length}/{EXTRA_DETAILS_MAX}</p>
+                        {photoCount > 0 && (
+                          <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-lg bg-white p-3 text-sm ring-1 ring-hairline/70">
+                            <input type="checkbox" checked={usePhotos} onChange={(e) => setUsePhotos(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--color-brown)]" />
+                            <span>
+                              <span className="flex items-center gap-1.5 font-semibold text-brown"><ImageIcon size={15} aria-hidden />기록 사진도 이야기 재료로 쓰기</span>
+                              <span className="mt-0.5 block text-xs leading-relaxed text-brown/55">
+                                사진 {Math.min(photoCount, 4)}장을 작게 줄여 AI에게 보내 장소와 물건만 읽어요. 얼굴과 생김새는 이야기와 그림에 옮기지 않아요.
+                              </span>
+                            </span>
+                          </label>
+                        )}
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="flex flex-col items-center gap-2 rounded-lg bg-sand-light/70 p-5 text-center">
@@ -338,12 +441,22 @@ export default function StorybookNewPage() {
                   <dd className="font-semibold text-brown">{lessonTag ?? "마음에 맞춰 자동"}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
+                  <dt className="text-brown/50">고민 · 방식</dt>
+                  <dd className="text-right font-semibold text-brown">
+                    {themeTag ?? "없음"} · {STORY_MODES.find((m) => m.mode === storyMode)?.label}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
                   <dt className="text-brown/50">담을 기록</dt>
                   <dd className="font-semibold text-brown">{periodError ? "-" : `${entries.length}개`}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-brown/50">구성</dt>
                   <dd className="font-semibold text-brown">표지 + 6장면 + 마음 편지</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-brown/50">함께 읽기</dt>
+                  <dd className="font-semibold text-brown">쪽마다 아이에게 건넬 질문</dd>
                 </div>
               </dl>
               {createStorybook.isError && (
@@ -362,7 +475,9 @@ export default function StorybookNewPage() {
               </p>
               <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-brown/50">
                 <Lock size={14} className="mt-0.5 shrink-0" aria-hidden />
-                아이 사진은 그림 생성에 쓰이지 않고, 기록의 내용만 이야기 재료로 써요.
+                {usePhotos && photoCount > 0
+                  ? "기록 사진은 장소와 물건을 읽는 데만 쓰고, 그림에는 쓰지 않아요."
+                  : "기록 사진은 쓰지 않고, 기록의 글만 이야기 재료로 써요."}
               </p>
             </div>
           </div>
