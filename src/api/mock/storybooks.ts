@@ -1,6 +1,6 @@
 import type { StorybooksApi } from "../storybooks";
 import type { StoryReadiness, Storybook, StorybookStatus, StorybookSummary } from "../../types";
-import { LESSON_TAGS, STORY_PERIOD_MAX_DAYS, THEME_TAGS, VOICES } from "../../constants/storybook";
+import { LESSON_JOINER, LESSON_MAX, LESSON_TAGS, STORY_PERIOD_MAX_DAYS, VOICES, splitLessons } from "../../constants/storybook";
 import { buildStory, mockPageQuestions, pickStorySlug } from "../../mock/stories";
 import { daysBetweenInclusive, todayString } from "../../utils/date";
 import { loadDb, newId, nowIso, saveDb, type MockDb, type MockStorybook } from "./db";
@@ -25,7 +25,7 @@ function finishedAt(book: MockStorybook): string {
 
 function contentOf(book: MockStorybook, db: MockDb) {
   const child = db.children.find((c) => c.id === book.childId);
-  return buildStory(pickStorySlug(book.lessonTag, book.parentMessage), child?.name ?? "", child?.gender ?? null);
+  return buildStory(pickStorySlug(splitLessons(book.lessonTag)[0] ?? null, book.parentMessage), child?.name ?? "", child?.gender ?? null);
 }
 
 function toSummary(book: MockStorybook, db: MockDb): StorybookSummary {
@@ -144,6 +144,14 @@ export const mockStorybooksApi: StorybooksApi = {
       fail(400, "NOT_ENOUGH_DIARIES", "이 기간에는 기록이 없어요. 기록을 먼저 남겨 주세요.");
     }
 
+    const lessons = [...new Set(splitLessons(input.lessonTag))];
+    if (lessons.some((tag) => !(LESSON_TAGS as string[]).includes(tag))) {
+      fail(400, "INVALID_LESSON_TAG", "교훈 태그를 다시 골라 주세요.");
+    }
+    if (lessons.length > LESSON_MAX) {
+      fail(400, "TOO_MANY_LESSON_TAGS", `교훈 카드는 ${LESSON_MAX}장까지 고를 수 있어요.`);
+    }
+
     const now = nowIso();
     const book: MockStorybook = {
       id: newId("storybook"),
@@ -151,7 +159,7 @@ export const mockStorybooksApi: StorybooksApi = {
       periodStart,
       periodEnd,
       parentMessage,
-      lessonTag: input.lessonTag || null,
+      lessonTag: lessons.join(LESSON_JOINER) || null,
       themeTag: input.themeTag || null,
       storyMode: input.storyMode ?? null,
       extraDetails: input.extraDetails?.trim() || null,
@@ -199,7 +207,7 @@ export const mockStorybooksApi: StorybooksApi = {
     await simulateNetwork();
     return {
       lessonTags: [...LESSON_TAGS],
-      themeTags: THEME_TAGS.map((theme) => theme.tag),
+      themeTags: [],
       storyModes: ["daily", "fantasy"],
       voices: VOICES.map((voice) => ({ id: voice.id, label: voice.label })),
     };

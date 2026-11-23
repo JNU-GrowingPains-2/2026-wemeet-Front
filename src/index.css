@@ -469,3 +469,87 @@ body { line-height: 1.65; }
     animation: none;
   }
 }
+
+/* ---------- 교훈 그림 카드 ---------- */
+@keyframes lesson-card-deal {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.lesson-card-deal {
+  animation: lesson-card-deal 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.lesson-card {
+  position: relative;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 16px;
+  background: white;
+  padding: 6px 6px 10px;
+  color: var(--color-brown);
+  box-shadow:
+    0 0 0 1px var(--color-hairline),
+    0 6px 14px -10px rgb(63 56 51 / 0.4);
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.25s,
+    opacity 0.25s;
+}
+.lesson-card:hover:not(.is-blocked) {
+  transform: translateY(-4px) rotate(-1.2deg);
+  box-shadow:
+    0 0 0 1px var(--color-sand-soft),
+    0 14px 22px -12px rgb(63 56 51 / 0.45);
+}
+.lesson-card.is-active {
+  transform: translateY(-6px);
+  box-shadow:
+    0 0 0 3px var(--color-sand-strong),
+    0 16px 24px -12px rgb(63 56 51 / 0.5);
+}
+.lesson-card.is-blocked {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.lesson-card-picture {
+  aspect-ratio: 1;
+  width: 100%;
+  border-radius: 11px;
+  background: var(--card-tint);
+  object-fit: cover;
+}
+.lesson-card-name {
+  margin-top: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.lesson-card-hint {
+  margin-top: 2px;
+  min-height: 2.6em;
+  padding: 0 2px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.3;
+  color: color-mix(in srgb, var(--color-brown) 60%, transparent);
+  word-break: keep-all;
+}
+.lesson-card-badge {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  border-radius: 999px;
+  background: var(--color-sand-strong);
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 2px 6px rgb(63 56 51 / 0.3);
+}

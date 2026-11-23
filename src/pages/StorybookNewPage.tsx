@@ -8,12 +8,14 @@ import Button from "../components/common/Button";
 import ErrorBox from "../components/common/ErrorBox";
 import Skeleton from "../components/common/Skeleton";
 import ConfirmDialog from "../components/common/ConfirmDialog";
+import LessonCardDeck from "../components/Storybook/LessonCardDeck";
 import { useUnsavedChangesGuard } from "../hooks/useUnsavedChangesGuard";
 import {
   EXTRA_DETAILS_MAX,
-  LESSON_TAGS,
+  LESSON_JOINER,
   STORY_MODES,
-  THEME_TAGS,
+  lessonCard,
+  splitLessons,
   PARENT_MESSAGE_EXAMPLES,
   PARENT_MESSAGE_MAX,
   PARENT_MESSAGE_MIN,
@@ -32,7 +34,6 @@ import { nameForms, possessive } from "../utils/korean";
 export interface StorybookDraft {
   parentMessage?: string;
   lessonTag?: string | null;
-  themeTag?: string | null;
   storyMode?: StoryMode | null;
   periodStart?: string;
   periodEnd?: string;
@@ -50,14 +51,6 @@ const chipClass = (active: boolean) =>
     "min-h-11 rounded-xl px-4 text-sm font-semibold transition-colors",
     active ? "bg-brown text-white" : "bg-white text-brown/70 ring-1 ring-hairline hover:bg-sand-light",
   ].join(" ");
-
-const LESSON_HINT: Record<string, string> = {
-  나눔: "함께 나누는 기쁨",
-  용기: "무서워도 한 걸음",
-  정직: "솔직한 마음",
-  배려: "친구의 마음 헤아리기",
-  끈기: "포기하지 않는 힘",
-};
 
 function Step({ n, title, optional, active, children }: { n: number; title: string; optional?: boolean; active: boolean; children: React.ReactNode }) {
   return (
@@ -79,8 +72,8 @@ export default function StorybookNewPage() {
   const today = todayString();
 
   const [parentMessage, setParentMessage] = useState(draft?.parentMessage ?? "");
-  const [lessonTag, setLessonTag] = useState<string | null>(draft?.lessonTag ?? null);
-  const [themeTag, setThemeTag] = useState<string | null>(draft?.themeTag ?? null);
+  const [lessons, setLessons] = useState<string[]>(() => splitLessons(draft?.lessonTag));
+  const lessonTag = lessons.join(LESSON_JOINER) || null;
   const [storyMode, setStoryMode] = useState<StoryMode | null>(draft?.storyMode ?? null);
   const [extraDetails, setExtraDetails] = useState("");
   const [usePhotos, setUsePhotos] = useState(false);
@@ -147,7 +140,6 @@ export default function StorybookNewPage() {
         periodEnd,
         parentMessage: parentMessage.trim(),
         lessonTag,
-        themeTag,
         storyMode,
         extraDetails: extraDetails.trim() || null,
         usePhotos: usePhotos && photoCount > 0,
@@ -226,43 +218,9 @@ export default function StorybookNewPage() {
 
           <Step n={3} active={step === 3} title="마지막으로 확인해 주세요">
             <div className="mb-6 rounded-xl bg-canvas p-4"><p className="service-eyebrow">아이에게 전할 마음</p><p className="mt-2 whitespace-pre-wrap font-handwriting text-lg">{parentMessage}</p><button type="button" onClick={() => goStep(2)} className="mt-2 text-xs text-ocean-deep underline underline-offset-4">메시지 수정</button></div>
-            <p className="mb-3 text-sm font-semibold">이야기의 주제 <span className="ml-1 font-normal text-brown/50">선택</span></p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {LESSON_TAGS.map((tag) => {
-                const active = lessonTag === tag;
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setLessonTag(active ? null : tag)}
-                    className={[
-                      "flex min-h-16 flex-col items-center justify-center rounded-lg px-2 text-center transition-colors",
-                      active ? "bg-brown text-white" : "bg-canvas text-brown ring-1 ring-hairline/70 hover:bg-sand-light",
-                    ].join(" ")}
-                  >
-                    <span className="text-[15px] font-bold">{tag}</span>
-                    <span className={`text-[11px] ${active ? "text-white/70" : "text-brown/50"}`}>{LESSON_HINT[tag]}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-brown/45">고르지 않으면 적어 주신 마음에 가장 어울리는 주제로 지어요.</p>
-
-            <p className="mb-3 mt-7 text-sm font-semibold">요즘 아이의 고민 <span className="ml-1 font-normal text-brown/50">선택</span></p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {THEME_TAGS.map(({ tag, hint }) => {
-                const active = themeTag === tag;
-                return (
-                  <button key={tag} type="button" aria-pressed={active} onClick={() => setThemeTag(active ? null : tag)}
-                    className={["flex min-h-14 flex-col items-center justify-center rounded-lg px-2 text-center transition-colors", active ? "bg-brown text-white" : "bg-canvas text-brown ring-1 ring-hairline/70 hover:bg-sand-light"].join(" ")}>
-                    <span className="text-[15px] font-bold">{tag}</span>
-                    <span className={`text-[11px] ${active ? "text-white/70" : "text-brown/50"}`}>{hint}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-brown/45">아이가 겪는 일에 맞춰, 그 마음을 다독이는 방향으로 이야기를 지어요.</p>
+            <p className="text-sm font-semibold">마음 카드 뽑기 <span className="ml-1 font-normal text-brown/50">선택</span></p>
+            <p className="mb-4 mt-1 text-xs text-brown/55">이야기에 담고 싶은 마음을 두 장까지 뽑아 보세요. 먼저 뽑은 카드가 이야기의 중심이 돼요.</p>
+            <LessonCardDeck value={lessons} onChange={setLessons} />
 
             <p className="mb-3 mt-7 text-sm font-semibold">이야기 방식</p>
             <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="이야기 방식">
@@ -422,7 +380,7 @@ export default function StorybookNewPage() {
               <div className="relative aspect-[2/3] w-32 overflow-hidden rounded-l-[4px] rounded-r-[10px] bg-paper shadow-lift">
                 <img src={child.characterImageUrl ?? art.full} alt="" className="absolute inset-x-0 bottom-0 mx-auto h-[78%] w-auto mix-blend-multiply soft-edges" />
                 <span className="absolute inset-x-3 top-4 text-center font-book text-[13px] font-bold leading-snug text-brown">
-                  {n.와} {lessonTag ? LESSON_HINT[lessonTag] : "특별한 하루"}
+                  {n.와} {lessonCard(lessons[0] ?? "")?.hint ?? "특별한 하루"}
                 </span>
                 <span className="absolute inset-y-0 left-0 w-[7%] bg-gradient-to-r from-black/20 to-transparent" />
               </div>
@@ -437,14 +395,12 @@ export default function StorybookNewPage() {
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-brown/50">주제</dt>
-                  <dd className="font-semibold text-brown">{lessonTag ?? "마음에 맞춰 자동"}</dd>
+                  <dt className="text-brown/50">마음 카드</dt>
+                  <dd className="font-semibold text-brown">{lessons.length ? lessons.join(" + ") : "마음에 맞춰 자동"}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
-                  <dt className="text-brown/50">고민 · 방식</dt>
-                  <dd className="text-right font-semibold text-brown">
-                    {themeTag ?? "없음"} · {STORY_MODES.find((m) => m.mode === storyMode)?.label}
-                  </dd>
+                  <dt className="text-brown/50">방식</dt>
+                  <dd className="text-right font-semibold text-brown">{STORY_MODES.find((m) => m.mode === storyMode)?.label}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-brown/50">담을 기록</dt>

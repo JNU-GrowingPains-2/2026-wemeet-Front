@@ -8,7 +8,7 @@ import PageFlipper, { type Leaf, type PageFlipperHandle } from "./PageFlipper";
 import QuestionPanel from "./QuestionPanel";
 import DotoGuide from "./DotoGuide";
 import { dotoImage, type DotoLine, type DotoPose } from "./doto";
-import { QUESTION_KIND_STYLE } from "../../constants/storybook";
+import { QUESTION_KIND_STYLE, lessonPhrase } from "../../constants/storybook";
 
 export interface StoryBookData {
   title: string;
@@ -53,14 +53,6 @@ function readDotoPref() {
     return true;
   }
 }
-
-const LESSON_PHRASE: Record<string, string> = {
-  나눔: "나누는 기쁨을 배우는 이야기",
-  용기: "용기 내는 마음을 배우는 이야기",
-  정직: "솔직한 마음을 배우는 이야기",
-  배려: "친구를 생각하는 마음을 배우는 이야기",
-  끈기: "포기하지 않는 마음을 배우는 이야기",
-};
 
 const SPREAD_ASPECT = 0.72; // 펼친 책 한 쪽의 가로/세로
 const SINGLE_ASPECT = 0.66;
@@ -140,7 +132,7 @@ function TitlePage({ book }: { book: StoryBookData }) {
       <h3 className="font-book text-[1.45em] font-bold leading-snug text-brown">{book.title}</h3>
       {book.lessonTag && (
         <p className="mt-[0.8em] rounded-full bg-sand-light px-[1em] py-[0.25em] text-[0.72em] font-semibold text-sand-ink">
-          {LESSON_PHRASE[book.lessonTag] ?? `${book.lessonTag} 이야기`}
+          {lessonPhrase(book.lessonTag)}
         </p>
       )}
       <p className="mt-[1.6em] text-[0.72em] text-brown/45">글·그림 하루동화 · 주인공 {book.protagonistName}</p>

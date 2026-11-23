@@ -245,7 +245,6 @@ export default function StorybookDetailPage() {
   const draft: StorybookDraft | undefined = book && {
     parentMessage: book.parentMessage,
     lessonTag: book.lessonTag,
-    themeTag: book.themeTag ?? null,
     storyMode: book.storyMode ?? null,
     periodStart: book.periodStart,
     periodEnd: book.periodEnd,
