@@ -355,7 +355,13 @@ export default function StorybookDetailPage() {
             <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
               <section className="rounded-xl bg-sand-light p-6">
                 <p className="text-xs font-semibold tracking-wider text-sand-ink">이 동화에 담은 마음</p>
-                <p className="mt-3 font-handwriting text-[22px] leading-snug text-brown">“{b.parentMessage}”</p>
+                {b.parentMessage ? (
+                  <p className="mt-3 font-handwriting text-[22px] leading-snug text-brown">“{b.parentMessage}”</p>
+                ) : (
+                  <p className="mt-3 text-sm leading-relaxed text-brown/60">
+                    {b.lessonTag ? `마음 카드 「${b.lessonTag}」로 지은 이야기예요.` : "기록을 읽고 가장 마음이 움직인 순간으로 지은 이야기예요."}
+                  </p>
+                )}
                 {b.completedAt && (
                   <p className="mt-4 text-xs text-brown/45">
                     {new Date(b.completedAt).toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" })} 완성

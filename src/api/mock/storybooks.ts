@@ -128,7 +128,7 @@ export const mockStorybooksApi: StorybooksApi = {
     requireChild(childId, db);
 
     const parentMessage = input.parentMessage.trim();
-    if (parentMessage.length < 10 || parentMessage.length > 300) {
+    if (parentMessage && (parentMessage.length < 10 || parentMessage.length > 300)) {
       fail(400, "INVALID_PARENT_MESSAGE", "전하고 싶은 메시지는 10~300자로 적어 주세요.");
     }
     const { periodStart, periodEnd } = input;

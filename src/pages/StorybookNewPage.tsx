@@ -52,6 +52,8 @@ const chipClass = (active: boolean) =>
     active ? "bg-brown text-white" : "bg-white text-brown/70 ring-1 ring-hairline hover:bg-sand-light",
   ].join(" ");
 
+const STEP_LABELS = ["기록 고르기", "줄거리 더하기", "마음 담기"];
+
 function Step({ n, title, optional, active, children }: { n: number; title: string; optional?: boolean; active: boolean; children: React.ReactNode }) {
   return (
     <section hidden={!active} className="service-panel p-5 sm:p-8">
@@ -94,8 +96,10 @@ export default function StorybookNewPage() {
 
   const messageLength = parentMessage.trim().length;
   const messageError =
-    messageLength < PARENT_MESSAGE_MIN
-      ? `${PARENT_MESSAGE_MIN}자 이상 적어 주세요. (지금 ${messageLength}자)`
+    messageLength === 0
+      ? null // 비워도 된다. 비우면 카드나 기록에서 이야기의 중심을 찾는다.
+      : messageLength < PARENT_MESSAGE_MIN
+      ? `적으신다면 ${PARENT_MESSAGE_MIN}자 이상 적어 주세요. (지금 ${messageLength}자)`
       : messageLength > PARENT_MESSAGE_MAX
         ? `${PARENT_MESSAGE_MAX}자까지 쓸 수 있어요.`
         : null;
@@ -132,7 +136,7 @@ export default function StorybookNewPage() {
 
   const handleSubmit = () => {
     setSubmitted(true);
-    if (messageError) { goStep(2); requestAnimationFrame(() => messageInput.current?.focus()); return; }
+    if (messageError) { goStep(3); requestAnimationFrame(() => messageInput.current?.focus()); return; }
     if (!canSubmit) return;
     createStorybook.mutate(
       {
@@ -160,18 +164,51 @@ export default function StorybookNewPage() {
       />
 
       <nav aria-label="동화 만들기 단계" className="mb-8 grid grid-cols-3 border-b border-hairline">
-        {["기록 고르기", "마음 쓰기", "확인하고 만들기"].map((label, i) => (
+        {STEP_LABELS.map((label, i) => (
           <button key={label} type="button" disabled={i + 1 > step} onClick={() => goStep(i + 1)} aria-current={step === i + 1 ? "step" : undefined}
             className={`flex min-h-16 items-center justify-center gap-2 border-b-2 px-1 text-xs sm:text-sm ${step === i + 1 ? "border-sand-ink font-semibold text-brown" : "border-transparent text-brown/50"}`}>
             <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${step >= i + 1 ? "bg-sand-light text-sand-ink" : "bg-paper"}`}>{step > i + 1 ? <Check size={13} /> : i + 1}</span>{label}
           </button>
         ))}
       </nav>
-      <h2 ref={stepHeading} tabIndex={-1} className="sr-only">{step}단계: {["기록 고르기", "마음 쓰기", "확인하고 만들기"][step - 1]}</h2>
+      <h2 ref={stepHeading} tabIndex={-1} className="sr-only">{step}단계: {STEP_LABELS[step - 1]}</h2>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
         <div className="space-y-5">
-          <Step n={2} active={step === 2} title="어떤 마음을 전하고 싶나요?">
-            <p className="mb-5 text-sm text-brown/65">잘 쓴 문장이 아니어도 괜찮아요. 아이에게 평소 하던 말처럼 적어 주세요.</p>
+          <Step n={2} active={step === 2} title="이야기에 넣고 싶은 내용이 있나요?" optional>
+            <p className="mb-4 text-sm text-brown/65">기록에 다 못 적은 장면이나, 이야기에 나왔으면 하는 것을 적어 주세요. 비워 두면 기록만으로 지어요.</p>
+            {readiness && readiness.questions.length > 0 && (
+              <p className="mb-2 rounded-lg bg-sand-light/70 px-3 py-2 text-xs leading-relaxed text-brown/65">이런 걸 알려 주시면 좋아요. {readiness.questions.join(" ")}</p>
+            )}
+            <label htmlFor="extra-details" className="sr-only">이야기에 넣고 싶은 내용</label>
+            <textarea
+              id="extra-details"
+              value={extraDetails}
+              onChange={(e) => setExtraDetails(e.target.value)}
+              rows={4}
+              maxLength={EXTRA_DETAILS_MAX}
+              placeholder={'예) 문 앞에서 "아빠 가지 마" 하고 다리를 붙잡았어요. / 좋아하는 공룡이 친구로 나오면 좋겠어요.'}
+              className="w-full resize-y rounded-xl border border-hairline bg-canvas p-4 text-[15px] leading-relaxed text-brown outline-none placeholder:text-brown/35 focus:border-ocean focus:ring-4 focus:ring-ocean/15"
+            />
+            <p className="mt-1 text-right text-xs text-brown/40">{extraDetails.trim().length}/{EXTRA_DETAILS_MAX}</p>
+
+            <p className="mb-3 mt-8 text-sm font-semibold">이야기 방식</p>
+            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="이야기 방식">
+              {STORY_MODES.map(({ mode, label, hint }) => {
+                const active = storyMode === mode;
+                return (
+                  <button key={label} type="button" role="radio" aria-checked={active} onClick={() => setStoryMode(mode)}
+                    className={["flex min-h-16 flex-col items-center justify-center rounded-lg px-2 text-center transition-colors", active ? "bg-brown text-white" : "bg-canvas text-brown ring-1 ring-hairline/70 hover:bg-sand-light"].join(" ")}>
+                    <span className="text-[15px] font-bold">{label}</span>
+                    <span className={`text-[11px] ${active ? "text-white/70" : "text-brown/50"}`}>{hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Step>
+
+          <Step n={3} active={step === 3} title="아이가 어떤 마음을 느꼈으면 하나요?" optional>
+            <p className="mb-5 text-sm text-brown/65">직접 적어도 되고, 카드로 골라도 되고, 둘 다 해도 돼요. 둘 다 비워 두면 기록을 읽고 가장 마음이 움직인 순간으로 알아서 지어요.</p>
+            <p className="mb-2 text-sm font-semibold">아이에게 하고 싶은 말 <span className="ml-1 font-normal text-brown/50">선택</span></p>
             <label htmlFor="parent-message" className="sr-only">
               전하고 싶은 메시지
             </label>
@@ -194,7 +231,7 @@ export default function StorybookNewPage() {
             />
             <div id="parent-message-help" className="mt-1.5 flex justify-between gap-2 text-xs">
               <span className={submitted && messageError ? "text-error" : "text-brown/50"}>
-                {submitted && messageError ? messageError : "이 마음이 동화의 중심 줄거리가 되고, 마지막 장에 편지로 실려요."}
+                {submitted && messageError ? messageError : "적어 주시면 이 마음이 이야기의 중심이 되고, 마지막 장에 편지로 실려요."}
               </span>
               <span className={messageLength > PARENT_MESSAGE_MAX ? "text-error" : "text-brown/40"}>
                 {messageLength}/{PARENT_MESSAGE_MAX}
@@ -214,27 +251,12 @@ export default function StorybookNewPage() {
               ))}
             </div>
             </details>
-          </Step>
 
-          <Step n={3} active={step === 3} title="마지막으로 확인해 주세요">
-            <div className="mb-6 rounded-xl bg-canvas p-4"><p className="service-eyebrow">아이에게 전할 마음</p><p className="mt-2 whitespace-pre-wrap font-handwriting text-lg">{parentMessage}</p><button type="button" onClick={() => goStep(2)} className="mt-2 text-xs text-ocean-deep underline underline-offset-4">메시지 수정</button></div>
+
+            <hr className="my-7 border-hairline" />
             <p className="text-sm font-semibold">마음 카드 뽑기 <span className="ml-1 font-normal text-brown/50">선택</span></p>
-            <p className="mb-4 mt-1 text-xs text-brown/55">이야기에 담고 싶은 마음을 두 장까지 뽑아 보세요. 먼저 뽑은 카드가 이야기의 중심이 돼요.</p>
+            <p className="mb-4 mt-1 text-xs text-brown/55">이야기에 담고 싶은 마음을 두 장까지 뽑아 보세요. 먼저 뽑은 카드가 중심이 돼요.</p>
             <LessonCardDeck value={lessons} onChange={setLessons} />
-
-            <p className="mb-3 mt-7 text-sm font-semibold">이야기 방식</p>
-            <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="이야기 방식">
-              {STORY_MODES.map(({ mode, label, hint }) => {
-                const active = storyMode === mode;
-                return (
-                  <button key={label} type="button" role="radio" aria-checked={active} onClick={() => setStoryMode(mode)}
-                    className={["flex min-h-16 flex-col items-center justify-center rounded-lg px-2 text-center transition-colors", active ? "bg-brown text-white" : "bg-canvas text-brown ring-1 ring-hairline/70 hover:bg-sand-light"].join(" ")}>
-                    <span className="text-[15px] font-bold">{label}</span>
-                    <span className={`text-[11px] ${active ? "text-white/70" : "text-brown/50"}`}>{hint}</span>
-                  </button>
-                );
-              })}
-            </div>
           </Step>
 
           <Step n={1} active={step === 1} title="어느 날의 이야기를 담을까요?">
@@ -320,22 +342,6 @@ export default function StorybookNewPage() {
                             {readiness.hints.map((hint) => <li key={hint}>· {hint}</li>)}
                           </ul>
                         )}
-                        <label htmlFor="extra-details" className="mt-4 block text-sm font-semibold text-brown">
-                          기록에 덧붙이고 싶은 말 <span className="ml-1 font-normal text-brown/50">선택</span>
-                        </label>
-                        {readiness.questions.length > 0 && (
-                          <p className="mt-1 text-xs text-brown/55">{readiness.questions.join(" ")}</p>
-                        )}
-                        <textarea
-                          id="extra-details"
-                          value={extraDetails}
-                          onChange={(e) => setExtraDetails(e.target.value)}
-                          rows={3}
-                          maxLength={EXTRA_DETAILS_MAX}
-                          placeholder={'예) 문 앞에서 "아빠 가지 마" 하고 다리를 붙잡았어요.'}
-                          className="mt-2 w-full resize-y rounded-xl border border-hairline bg-white p-3 text-sm text-brown outline-none placeholder:text-brown/35 focus:border-ocean focus:ring-4 focus:ring-ocean/15"
-                        />
-                        <p className="mt-1 text-right text-xs text-brown/40">{extraDetails.trim().length}/{EXTRA_DETAILS_MAX}</p>
                         {photoCount > 0 && (
                           <label className="mt-2 flex cursor-pointer items-start gap-2.5 rounded-lg bg-white p-3 text-sm ring-1 ring-hairline/70">
                             <input type="checkbox" checked={usePhotos} onChange={(e) => setUsePhotos(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[var(--color-brown)]" />
@@ -368,7 +374,7 @@ export default function StorybookNewPage() {
           </Step>
           <div className="flex items-center justify-between gap-3 py-3">
             <Button variant="ghost" onClick={() => goStep(step - 1)} disabled={step === 1 || createStorybook.isPending}><ArrowLeft size={16} />이전</Button>
-            {step < 3 && <Button size="lg" disabled={step === 1 && !canSubmit} onClick={() => { if (step === 2 && messageError) { setSubmitted(true); messageInput.current?.focus(); return; } goStep(step + 1); }}>{step === 1 ? "이 기록으로 계속" : "완성 전 확인하기"}<ArrowRight size={16} /></Button>}
+            {step < 3 && <Button size="lg" disabled={step === 1 && !canSubmit} onClick={() => goStep(step + 1)}>{step === 1 ? "이 기록으로 계속" : extraDetails.trim() ? "다음" : "건너뛰기"}<ArrowRight size={16} /></Button>}
           </div>
         </div>
 
@@ -396,7 +402,7 @@ export default function StorybookNewPage() {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-brown/50">마음 카드</dt>
-                  <dd className="font-semibold text-brown">{lessons.length ? lessons.join(" + ") : "마음에 맞춰 자동"}</dd>
+                  <dd className="font-semibold text-brown">{lessons.length ? lessons.join(" + ") : messageLength > 0 ? "적어 주신 말에 맞춰" : "기록을 읽고 알아서"}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-brown/50">방식</dt>
@@ -408,7 +414,7 @@ export default function StorybookNewPage() {
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-brown/50">구성</dt>
-                  <dd className="font-semibold text-brown">표지 + 6장면 + 마음 편지</dd>
+                  <dd className="font-semibold text-brown">{messageLength > 0 ? "표지 + 6장면 + 마음 편지" : "표지 + 6장면"}</dd>
                 </div>
                 <div className="flex justify-between gap-3">
                   <dt className="text-brown/50">함께 읽기</dt>

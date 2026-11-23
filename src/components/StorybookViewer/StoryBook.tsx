@@ -217,12 +217,25 @@ function SinglePage({ page, title, number, reserve }: { page: StorybookPage; tit
   );
 }
 
+// 부모가 하고 싶은 말을 적지 않은 동화는 편지가 없다. 그 자리에는 조용한 맺음 쪽을 둔다.
+const letterText = (book: StoryBookData) => book.letter || book.parentMessage || "";
+
 function Letter({ book, gutter }: { book: StoryBookData; gutter?: "left" | "right" }) {
+  if (!letterText(book)) {
+    return (
+      <Paper gutter={gutter} className="flex flex-col items-center justify-center px-[11%] text-center">
+        <p className="font-book text-[1.5em] font-bold tracking-[0.3em] text-brown/70">끝</p>
+        <p className="mt-[1.2em] font-handwriting text-[1.05em] leading-relaxed text-brown/60">
+          {nameForms(book.protagonistName).call}의 하루로 지은 이야기
+        </p>
+      </Paper>
+    );
+  }
   return (
     <Paper gutter={gutter} className="flex flex-col justify-center px-[11%]">
       <p className="text-[0.72em] font-semibold tracking-wider text-sand-ink">이 동화에 담은 마음</p>
       <div className="paper-lined mt-[1em] rounded-[0.6em] px-[0.9em] py-[0.3em] shadow-inner">
-        <p className="ruled-text font-handwriting text-[1.2em] leading-[36px] text-brown">{book.letter || book.parentMessage}</p>
+        <p className="ruled-text font-handwriting text-[1.2em] leading-[36px] text-brown">{letterText(book)}</p>
       </div>
       <p className="mt-[1em] text-right font-handwriting text-[1.05em] text-brown/70">— {nameForms(book.protagonistName).call}를 사랑하는 엄마, 아빠가</p>
     </Paper>
@@ -370,7 +383,7 @@ export default function StoryBook({ book, maxHeight, compact = false, guide = fa
         <Questions key="questions" book={book} gutter="right" />,
         <BackCover key="back" book={book} />,
       );
-      speak.push(book.letter || book.parentMessage, book.questions.join(" "), "");
+      speak.push(letterText(book), book.questions.join(" "), "");
       if (faces.length % 2 === 1) {
         faces.push(<BlankPaper key="blank" gutter="left" />);
         speak.push("");
@@ -391,7 +404,7 @@ export default function StoryBook({ book, maxHeight, compact = false, guide = fa
       <Questions key="questions" book={book} />,
       <BackCover key="back" book={book} />,
     ];
-    const speak = [book.title, book.title, ...book.pages.map((p) => p.text), book.letter || book.parentMessage, book.questions.join(" "), ""];
+    const speak = [book.title, book.title, ...book.pages.map((p) => p.text), letterText(book), book.questions.join(" "), ""];
     return {
       leaves: faces.map((front, i) => ({ front, back: <BlankPaper key={`blank-${i}`} /> })),
       speech: [...speak, ""],
