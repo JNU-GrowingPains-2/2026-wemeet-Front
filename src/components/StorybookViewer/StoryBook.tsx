@@ -6,6 +6,8 @@ import { nameForms } from "../../utils/korean";
 import { BrandMark } from "../layout/Brand";
 import PageFlipper, { type Leaf, type PageFlipperHandle } from "./PageFlipper";
 import QuestionPanel from "./QuestionPanel";
+import DotoGuide from "./DotoGuide";
+import { dotoImage, type DotoLine, type DotoPose } from "./doto";
 import { QUESTION_KIND_STYLE } from "../../constants/storybook";
 
 export interface StoryBookData {
@@ -31,6 +33,25 @@ interface StoryBookProps {
   // 책이 차지할 수 있는 최대 높이(px). 없으면 화면 높이에 맞춘다.
   maxHeight?: number;
   compact?: boolean;
+  // 길잡이 도토를 함께 띄운다. 동화를 읽는 화면에서만 켠다.
+  guide?: boolean;
+}
+
+const DOTO_PREF_KEY = "harudonghwa:doto";
+const DOTO_REACTIONS = [
+  "우와, 그렇게 생각했구나! 잘 말해 줬어.",
+  "그랬구나. 이야기해 줘서 고마워!",
+  "오, 멋진 생각이다! 나도 꼭 기억해 둘게.",
+];
+// 말풍선 높이를 아직 재지 못한 쪽에 미리 비워 둘 높이
+const DOTO_STACK_GUESS = 56;
+
+function readDotoPref() {
+  try {
+    return window.localStorage.getItem(DOTO_PREF_KEY) !== "off";
+  } catch {
+    return true;
+  }
 }
 
 const LESSON_PHRASE: Record<string, string> = {
@@ -153,27 +174,36 @@ function PrintedQuestion({ page }: { page: StorybookPage }) {
   );
 }
 
-function StoryText({ page, number }: { page: StorybookPage; number: number }) {
+// reserve 가 있으면 도토가 질문을 건네는 쪽이다. 인쇄된 질문 대신 아래에 그만큼 자리를 비운다.
+function DotoRoom({ height }: { height: number }) {
+  return <div aria-hidden className="shrink-0 transition-[height] duration-300" style={{ height }} />;
+}
+
+function StoryText({ page, number, reserve }: { page: StorybookPage; number: number; reserve?: number }) {
   const paragraphs = page.text.split("\n").filter(Boolean);
   return (
-    <Paper gutter="right" className="flex flex-col justify-center px-[11%] py-[12%]">
-      <span className="mb-[1.4em] block h-px w-[2.4em] bg-sand" aria-hidden />
-      <div className="book-text font-book text-[1.02em] leading-[1.95] text-brown">
-        {paragraphs.map((line, i) => (
-          <p key={i}>{line}</p>
-        ))}
+    <Paper gutter="right" className="flex flex-col px-[11%] py-[12%]">
+      <div className="flex min-h-0 flex-1 flex-col justify-center">
+        <span className="mb-[1.4em] block h-px w-[2.4em] bg-sand" aria-hidden />
+        <div className="book-text font-book text-[1.02em] leading-[1.95] text-brown">
+          {paragraphs.map((line, i) => (
+            <p key={i}>{line}</p>
+          ))}
+        </div>
+        {reserve === undefined && <PrintedQuestion page={page} />}
       </div>
-      <PrintedQuestion page={page} />
+      {reserve !== undefined && <DotoRoom height={reserve} />}
       <PageNumber n={number} side="right" />
     </Paper>
   );
 }
 
-function SinglePage({ page, title, number }: { page: StorybookPage; title: string; number: number }) {
+function SinglePage({ page, title, number, reserve }: { page: StorybookPage; title: string; number: number; reserve?: number }) {
   const paragraphs = page.text.split("\n").filter(Boolean);
   return (
     <Paper className="flex flex-col">
-      <div className="relative h-[52%] w-full shrink-0 overflow-hidden">
+      {/* 도토가 말하는 쪽은 글과 말풍선이 다 들어가도록 그림이 남는 높이만 차지한다. */}
+      <div className={`relative w-full overflow-hidden ${reserve === undefined ? "h-[52%] shrink-0" : "min-h-[34%] flex-1"}`}>
         <img
           src={page.imageUrl}
           alt={`${title} ${page.pageNo}장면 삽화`}
@@ -181,11 +211,14 @@ function SinglePage({ page, title, number }: { page: StorybookPage; title: strin
           draggable={false}
         />
       </div>
-      <div className="book-text flex flex-1 flex-col justify-center px-[8%] py-[5%] font-book text-[0.92em] leading-[1.8] text-brown">
-        {paragraphs.map((line, i) => (
-          <p key={i}>{line}</p>
-        ))}
-        <PrintedQuestion page={page} />
+      <div className={`flex flex-col px-[8%] py-[5%] ${reserve === undefined ? "min-h-0 flex-1" : "max-h-[66%] min-h-[48%] shrink-0"}`}>
+        <div className="book-text flex min-h-0 flex-1 flex-col justify-center font-book text-[0.92em] leading-[1.8] text-brown">
+          {paragraphs.map((line, i) => (
+            <p key={i}>{line}</p>
+          ))}
+          {reserve === undefined && <PrintedQuestion page={page} />}
+        </div>
+        {reserve !== undefined && <DotoRoom height={reserve} />}
       </div>
       <PageNumber n={number} side="right" />
     </Paper>
@@ -271,7 +304,7 @@ function useBookSize(wrapper: React.RefObject<HTMLDivElement | null>, fullscreen
   return size;
 }
 
-export default function StoryBook({ book, maxHeight, compact = false, onSaveAnswer, onFinish }: StoryBookProps) {
+export default function StoryBook({ book, maxHeight, compact = false, guide = false, onSaveAnswer, onFinish }: StoryBookProps) {
   const wrapper = useRef<HTMLDivElement>(null);
   const flipper = useRef<PageFlipperHandle>(null);
   const [fullscreen, setFullscreen] = useState(false);
@@ -282,6 +315,17 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
   const [reading, setReading] = useState(false);
   // 읽어 주다가 질문이 있는 쪽에서 멈춰 아이의 대답을 기다리는 중인 장
   const [waitingAt, setWaitingAt] = useState<number | null>(null);
+  // ---------- 길잡이 도토 ----------
+  const [dotoOn, setDotoOn] = useState(readDotoPref);
+  const guideOn = guide && dotoOn;
+  const [turning, setTurning] = useState(false);
+  const [stackHeight, setStackHeight] = useState(0);
+  // 아래 값들은 모두 "몇 번째 펼침에서 일어난 일인지"를 함께 적어, 쪽이 바뀌면 저절로 무효가 되게 한다.
+  const [tipAt, setTipAt] = useState<number | null>(null);
+  const [quietAt, setQuietAt] = useState<number | null>(null);
+  const [settledAt, setSettledAt] = useState<number | null>(null);
+  const [reaction, setReaction] = useState<{ id: number; at: number; answer: string } | null>(null);
+  const [cheeredId, setCheeredId] = useState(0);
   const finishedRef = useRef(false);
   const leavesCountRef = useRef(0);
   const { width, height } = useBookSize(wrapper, fullscreen, maxHeight);
@@ -301,15 +345,31 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
   const pageWidth = pageHeight * (mode === "spread" ? SPREAD_ASPECT : SINGLE_ASPECT);
   const fontSize = Math.max(12, pageWidth * (mode === "spread" ? 0.043 : 0.047));
 
+  // 도토의 크기와 자리. 책 왼쪽 위가 기준이다.
+  const spread = mode === "spread";
+  const dotoSize = Math.round(spread ? Math.max(72, Math.min(92, pageWidth * 0.2)) : Math.max(58, Math.min(72, pageWidth * 0.19)));
+  const currentScene = flipped - 2;
+  // 질문 자리에서 도토의 발밑이 쪽 아래에서 얼마나 떠 있는지
+  const dotoFloor = pageHeight * (spread ? 0.045 : 0.035);
+  const roomOf = (stack: number) => {
+    const need = Math.max(dotoSize + 4, dotoSize * 0.12 + stack + 10) + dotoFloor;
+    return Math.max(0, Math.round(need - pageWidth * (spread ? 0.12 : 0.05)));
+  };
+  const currentRoom = roomOf(Math.max(stackHeight, turning ? DOTO_STACK_GUESS : 0));
+  const defaultRoom = roomOf(DOTO_STACK_GUESS);
+
   // 펼침 모드: [표지 | 헌정 | 제목 | (그림, 글)… | 마음 편지 | 질문·끝 | 뒤표지]
   const { leaves, speech } = useMemo(() => {
+    // 도토가 질문을 건네는 쪽은 인쇄된 질문 대신 말풍선 자리를 비운다. 지금 쪽은 잰 높이, 다른 쪽은 어림값.
+    const roomFor = (page: StorybookPage, i: number) =>
+      guideOn && page.question ? (i === currentScene ? currentRoom : defaultRoom) : undefined;
     if (mode === "spread") {
       const faces: ReactNode[] = [<Cover key="cover" book={book} />, <Dedication key="dedication" book={book} />, <TitlePage key="title" book={book} />];
       const speak: string[] = [book.title, "", book.title];
       book.pages.forEach((page, i) => {
         faces.push(
           <Illustration key={`img-${i}`} page={page} title={book.title} />,
-          <StoryText key={`txt-${i}`} page={page} number={i + 1} />,
+          <StoryText key={`txt-${i}`} page={page} number={i + 1} reserve={roomFor(page, i)} />,
         );
         speak.push("", page.text);
       });
@@ -332,7 +392,9 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
     const faces: ReactNode[] = [
       <Cover key="cover" book={book} />,
       <TitlePage key="title" book={book} />,
-      ...book.pages.map((page, i) => <SinglePage key={`page-${i}`} page={page} title={book.title} number={i + 1} />),
+      ...book.pages.map((page, i) => (
+        <SinglePage key={`page-${i}`} page={page} title={book.title} number={i + 1} reserve={roomFor(page, i)} />
+      )),
       <Letter key="letter" book={book} />,
       <Questions key="questions" book={book} />,
       <BackCover key="back" book={book} />,
@@ -342,7 +404,7 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
       leaves: faces.map((front, i) => ({ front, back: <BlankPaper key={`blank-${i}`} /> })),
       speech: [...speak, ""],
     };
-  }, [book, mode]);
+  }, [book, mode, guideOn, currentScene, currentRoom, defaultRoom]);
 
   const total = leaves.length;
   useEffect(() => {
@@ -350,7 +412,7 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
   }, [total]);
 
   // 두 모드 모두 i번째 장면은 flipped = i + 2 일 때 보인다.
-  const sceneIndex = flipped - 2;
+  const sceneIndex = currentScene;
   const currentPage = sceneIndex >= 0 && sceneIndex < book.pages.length ? book.pages[sceneIndex] : null;
   const hasAudio = book.pages.some((p) => p.audioUrl);
 
@@ -448,6 +510,116 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
     return "마지막 장";
   })();
 
+  // ---------- 도토가 할 말과 자세 ----------
+  const hasQuestion = Boolean(currentPage?.question);
+  useEffect(() => {
+    // 질문을 건넨 뒤 잠깐 말하는 자세였다가 귀 기울이는 자세로 바꾼다.
+    const timer = window.setTimeout(() => setSettledAt(flipped), 2200);
+    return () => window.clearTimeout(timer);
+  }, [flipped]);
+  const reactionId = reaction?.id ?? 0;
+  useEffect(() => {
+    if (!reactionId) return;
+    const timer = window.setTimeout(() => setCheeredId(reactionId), 2600);
+    return () => window.clearTimeout(timer);
+  }, [reactionId]);
+
+  const saveAnswer = useMemo(() => {
+    if (!onSaveAnswer) return undefined;
+    return async (pageNo: number, answer: string) => {
+      const result = await onSaveAnswer(pageNo, answer);
+      const said = answer.trim();
+      // 저장이 끝난 뒤에만 도토가 반응한다. 대답을 지운 경우에는 조용히 있는다.
+      setReaction(said ? { id: Date.now(), at: flipped, answer: said } : null);
+      if (said) setQuietAt(null);
+      return result;
+    };
+  }, [onSaveAnswer, flipped]);
+
+  const child = nameForms(book.protagonistName);
+  const answered = reaction && reaction.at === flipped ? reaction : null;
+  const dotoLines: DotoLine[] = (() => {
+    if (!guideOn || turning || quietAt === flipped) return [];
+    if (atStart) return [{ id: "hello", from: "doto", text: `안녕! 나는 책갈피 다람쥐 도토야. ${child.야}, 우리 같이 읽어 볼까?` }];
+    if (atEnd) return [{ id: "bye", from: "doto", text: `끝까지 다 읽었네! ${child.야}, 오늘 이야기 참 좋았어. 다음에 또 만나자.` }];
+    if (!currentPage?.question) return [];
+    const no = currentPage.pageNo;
+    if (answered) {
+      return [
+        { id: `a-${no}`, from: "child", text: answered.answer, label: `${child.의} 대답` },
+        { id: `r-${answered.id}`, from: "doto", text: DOTO_REACTIONS[no % DOTO_REACTIONS.length] },
+      ];
+    }
+    const tipOpen = tipAt === flipped;
+    const question: DotoLine = {
+      id: `q-${no}`,
+      from: "doto",
+      text: currentPage.question,
+      kind: currentPage.questionKind,
+      action: currentPage.questionTip
+        ? {
+            label: tipOpen ? "부모 한마디 접기" : "대답하면 이렇게 받아 주세요",
+            pressed: tipOpen,
+            onClick: () => setTipAt(tipOpen ? null : flipped),
+          }
+        : undefined,
+    };
+    if (tipOpen && currentPage.questionTip) {
+      return [question, { id: `t-${no}`, from: "parent", text: `“${currentPage.questionTip}”`, label: "부모님께" }];
+    }
+    if (currentPage.childAnswer) {
+      return [question, { id: `a-${no}`, from: "child", text: currentPage.childAnswer, label: `${child.의} 대답` }];
+    }
+    return [question];
+  })();
+
+  const closed = atStart || atEnd;
+  const dotoPose: DotoPose = (() => {
+    if (atStart) return "hello";
+    if (atEnd) return "bye";
+    if (!hasQuestion || turning) return "idle";
+    if (answered) return cheeredId === answered.id ? "idle" : "happy";
+    if (waiting) return "listen";
+    if (settledAt !== flipped) return "talk";
+    const kind = currentPage?.questionKind;
+    if (kind === "가리키기") return spread ? "point" : "curious";
+    if (kind === "기분" || kind === "예측" || kind === "상상") return "curious";
+    return "listen";
+  })();
+  const dotoPlace = (() => {
+    if (spread && closed) {
+      // 덮인 책 오른쪽 빈 자리에 서서, 머리 위로 말한다.
+      const bubbleWidth = Math.max(150, Math.min(230, pageWidth * 0.5 - 14));
+      return { layout: "above" as const, x: pageWidth * 1.5 + (pageWidth * 0.5 - dotoSize) / 2 + 6, y: pageHeight * 0.97 - dotoSize, bubbleWidth, mirrored: false };
+    }
+    if (closed || hasQuestion) {
+      // 글 쪽 왼쪽 아래. 말풍선은 오른쪽으로 붙는다.
+      const x = spread ? pageWidth * 1.06 : pageWidth * 0.04;
+      const right = (spread ? pageWidth * 2 : pageWidth) - pageWidth * (spread ? 0.09 : 0.05);
+      return {
+        layout: "side" as const,
+        x,
+        y: pageHeight - dotoSize - (closed ? pageHeight * 0.03 : dotoFloor),
+        bubbleWidth: right - x - dotoSize - 4,
+        // 가리킬 때는 왼쪽 그림을 가리키고, 그 밖에는 말풍선 쪽을 본다.
+        mirrored: dotoPose !== "point",
+      };
+    }
+    // 할 말이 없을 때는 책 오른쪽 위 모서리에 걸터앉는다.
+    return { layout: "side" as const, x: (spread ? pageWidth * 2 : pageWidth) - dotoSize * (spread ? 0.8 : 1.02), y: -dotoSize * 0.42, bubbleWidth: 0, mirrored: false };
+  })();
+
+  const toggleDoto = () => {
+    setDotoOn((on) => {
+      try {
+        window.localStorage.setItem(DOTO_PREF_KEY, on ? "off" : "on");
+      } catch {
+        // 저장하지 못해도 이번 화면에서는 그대로 따른다.
+      }
+      return !on;
+    });
+  };
+
   const body = (
     <div className={fullscreen ? "flex h-full w-full flex-col" : ""}>
       <div
@@ -460,15 +632,33 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
       >
         {width > 0 && (
           <div style={{ fontSize }} className={fullscreen ? "" : "py-2"}>
-            <PageFlipper
-              ref={flipper}
-              leaves={leaves}
-              mode={mode}
-              pageWidth={pageWidth}
-              pageHeight={pageHeight}
-              flipped={flipped}
-              onFlippedChange={setFlipped}
-            />
+            <div className="relative mx-auto" style={{ width: spread ? pageWidth * 2 : pageWidth }}>
+              <PageFlipper
+                ref={flipper}
+                leaves={leaves}
+                mode={mode}
+                pageWidth={pageWidth}
+                pageHeight={pageHeight}
+                flipped={flipped}
+                onFlippedChange={setFlipped}
+                onTurningChange={setTurning}
+              />
+              {guideOn && (
+                <DotoGuide
+                  x={dotoPlace.x}
+                  y={dotoPlace.y}
+                  size={dotoSize}
+                  pose={dotoPose}
+                  mirrored={dotoPlace.mirrored}
+                  lines={dotoLines}
+                  layout={dotoPlace.layout}
+                  bubbleWidth={dotoPlace.bubbleWidth}
+                  onStackHeight={setStackHeight}
+                  onPetClick={() => setQuietAt(quietAt === flipped ? null : flipped)}
+                  petLabel={quietAt === flipped ? "도토의 말 다시 보기" : "도토의 말 잠깐 접기"}
+                />
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -524,8 +714,9 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
             page={currentPage}
             waiting={waiting}
             dark={fullscreen}
+            guided={guideOn}
             onNext={() => flipper.current?.next()}
-            onSaveAnswer={onSaveAnswer}
+            onSaveAnswer={saveAnswer}
           />
         </div>
       )}
@@ -558,6 +749,26 @@ export default function StoryBook({ book, maxHeight, compact = false, onSaveAnsw
           {fullscreen ? <Minimize2 size={16} aria-hidden /> : <Maximize2 size={16} aria-hidden />}
           {fullscreen ? "작게 보기" : "크게 펼쳐 보기"}
         </button>
+        {guide && (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={dotoOn}
+            onClick={toggleDoto}
+            className={`flex min-h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-medium transition-colors ${
+              fullscreen ? "text-white/80 hover:bg-white/10" : "text-brown/60 hover:bg-sand-light hover:text-brown"
+            }`}
+          >
+            <img src={dotoImage("idle")} alt="" className={`h-6 w-6 transition-[filter,opacity] ${dotoOn ? "" : "opacity-50 grayscale"}`} />
+            도토
+            <span
+              aria-hidden
+              className={`relative h-[18px] w-8 rounded-full transition-colors ${dotoOn ? "bg-sand" : fullscreen ? "bg-white/25" : "bg-hairline"}`}
+            >
+              <span className={`absolute top-0.5 h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-[left] ${dotoOn ? "left-4" : "left-0.5"}`} />
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

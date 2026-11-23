@@ -8,12 +8,14 @@ interface QuestionPanelProps {
   // 소리 내어 읽어 주다가 이 쪽에서 멈춰 질문을 기다리는 중인지
   waiting: boolean;
   dark?: boolean;
+  // 도토가 질문과 부모 한마디를 말풍선으로 건넬 때는 대답 칸만 남긴다.
+  guided?: boolean;
   onNext: () => void;
   onSaveAnswer?: (pageNo: number, answer: string) => Promise<unknown>;
 }
 
 // 책 아래에 지금 쪽의 질문을 보여 주고, 아이의 대답을 적게 한다.
-export default function QuestionPanel({ page, waiting, dark = false, onNext, onSaveAnswer }: QuestionPanelProps) {
+export default function QuestionPanel({ page, waiting, dark = false, guided = false, onNext, onSaveAnswer }: QuestionPanelProps) {
   const saved = page.childAnswer ?? "";
   // 쪽이 바뀌면 key 로 새로 만들어지므로 초기값만 맞추면 된다.
   const [answer, setAnswer] = useState(saved);
@@ -21,6 +23,8 @@ export default function QuestionPanel({ page, waiting, dark = false, onNext, onS
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
   if (!page.question) return null;
+  // 도토와 함께일 때 적을 곳도, 기다리는 중도 아니면 보여 줄 것이 없다.
+  if (guided && !onSaveAnswer && !waiting) return null;
 
   const dirty = answer.trim() !== saved;
   const save = async () => {
@@ -40,11 +44,14 @@ export default function QuestionPanel({ page, waiting, dark = false, onNext, onS
     <section
       aria-live="polite"
       className={[
-        "mx-auto mt-4 w-full max-w-xl rounded-xl p-4 transition-shadow",
+        "mx-auto mt-4 w-full max-w-xl rounded-xl transition-shadow",
+        guided ? "p-2.5" : "p-4",
         dark ? "bg-white/10 text-white" : "bg-white ring-1 ring-hairline",
         waiting ? (dark ? "ring-2 ring-sand" : "ring-2 ring-sand shadow-lift") : "",
       ].join(" ")}
     >
+      {!guided && (
+        <>
       <div className="flex items-center gap-2 text-xs font-semibold">
         <MessageCircleQuestion size={16} className={dark ? "text-sand" : "text-sand-ink"} aria-hidden />
         <span className={dark ? "text-white/70" : "text-brown/55"}>{page.pageNo}장면에서 함께 이야기해요</span>
@@ -72,8 +79,10 @@ export default function QuestionPanel({ page, waiting, dark = false, onNext, onS
           )}
         </div>
       )}
+        </>
+      )}
       {onSaveAnswer && (
-        <div className="mt-3 flex gap-2">
+        <div className={`flex gap-2 ${guided ? "" : "mt-3"}`}>
           <label htmlFor={`answer-${page.pageNo}`} className="sr-only">
             아이의 대답
           </label>
@@ -87,7 +96,7 @@ export default function QuestionPanel({ page, waiting, dark = false, onNext, onS
               if (e.key === "Enter") void save();
             }}
             maxLength={300}
-            placeholder="아이의 대답을 적어 두면 다음 동화의 재료가 돼요"
+            placeholder={guided ? "아이의 대답을 적어 도토에게 들려주세요" : "아이의 대답을 적어 두면 다음 동화의 재료가 돼요"}
             className={`min-h-11 min-w-0 flex-1 rounded-lg border px-3 font-handwriting text-lg outline-none focus:ring-4 ${
               dark
                 ? "border-white/20 bg-white/10 text-white placeholder:font-body placeholder:text-sm placeholder:text-white/40 focus:ring-white/15"

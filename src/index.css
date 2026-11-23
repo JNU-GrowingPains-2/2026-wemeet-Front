@@ -406,3 +406,66 @@ body { line-height: 1.65; }
   white-space: pre-line;
   background: repeating-linear-gradient(to bottom, transparent 0 35px, #f0eee8 35px 36px);
 }
+
+/* ---------- 길잡이 도토 ---------- */
+.doto-move {
+  transition: transform 0.75s cubic-bezier(0.34, 1.25, 0.5, 1);
+  will-change: transform;
+}
+@keyframes doto-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1deg);
+  }
+}
+.doto-bob {
+  animation: doto-bob 3.4s ease-in-out infinite;
+  filter: drop-shadow(0 6px 6px rgb(63 56 51 / 0.22));
+}
+@keyframes doto-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-12px) scale(1.04);
+  }
+  60% {
+    transform: translateY(0);
+  }
+  78% {
+    transform: translateY(-5px);
+  }
+}
+.doto-hop {
+  animation: doto-hop 0.9s ease-out 2;
+}
+.doto-pose {
+  transition: opacity 0.18s ease;
+}
+@keyframes doto-bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.doto-bubble {
+  animation: doto-bubble-in 0.32s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .doto-move {
+    transition: none;
+  }
+  .doto-bob,
+  .doto-hop,
+  .doto-bubble {
+    animation: none;
+  }
+}

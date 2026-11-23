@@ -348,6 +348,7 @@ export default function StorybookDetailPage() {
                 letter: b.letter,
                 voiceLabel: VOICES.find((v) => v.id === b.narrationVoice)?.label ?? null,
               }}
+              guide
               onSaveAnswer={handleSaveAnswer}
               onFinish={handleFinish}
             />

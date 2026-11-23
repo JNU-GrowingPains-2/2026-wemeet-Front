@@ -30,6 +30,8 @@ interface PageFlipperProps {
   onFlippedChange: (flipped: number) => void;
   ref?: Ref<PageFlipperHandle>;
   keyboard?: boolean;
+  // 책장이 넘어가는 중인지(끌기 포함) 알려 준다.
+  onTurningChange?: (turning: boolean) => void;
 }
 
 const DURATION_MS = 760;
@@ -51,6 +53,7 @@ export default function PageFlipper({
   onFlippedChange,
   ref,
   keyboard = true,
+  onTurningChange,
 }: PageFlipperProps) {
   const total = leaves.length;
   const [motion, setMotion] = useState<Motion | null>(null);
@@ -70,6 +73,11 @@ export default function PageFlipper({
   useEffect(() => () => {
     if (frame.current) cancelAnimationFrame(frame.current);
   }, []);
+
+  const turning = motion !== null;
+  useEffect(() => {
+    onTurningChange?.(turning);
+  }, [turning, onTurningChange]);
 
   const animate = useCallback(
     (leaf: number, from: number, to: number, done: () => void) => {
